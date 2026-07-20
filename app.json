@@ -1,12 +1,15 @@
 {
   "expo": {
-    "name": "sarthi-mobile",
-    "slug": "sarthi-mobile",
+    "name": "Sarthi",
+    "slug": "saarathi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "updates": {
+      "enabled": false
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -16,6 +19,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "care.sarthi.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +30,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["./plugins/withCleartextTraffic.js"],
+    "extra": {
+      "eas": {
+        "projectId": "460d4658-0fef-45dc-830d-cef453b0d52e"
+      }
     }
   }
 }
