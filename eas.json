@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 15.0.0"
+    "version": ">= 15.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "preview": {
@@ -9,7 +10,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR_COOLIFY_DOMAIN/api"
+        "EXPO_PUBLIC_API_URL": "http://187.127.159.169:8000/api",
+        "EXPO_PUBLIC_MOCK_API": "false"
       }
     },
     "production": {
@@ -17,7 +19,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR_COOLIFY_DOMAIN/api"
+        "EXPO_PUBLIC_API_URL": "http://187.127.159.169:8000/api",
+        "EXPO_PUBLIC_MOCK_API": "false"
       }
     }
   }

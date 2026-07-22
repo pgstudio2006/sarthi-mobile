@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
+import { useTranslation, useDateLocale } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { ChildProfile } from '../api/client';
 import AvatarIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
@@ -24,13 +25,6 @@ type ChildSwitcherSheetProps = {
   onEditChild: (child: ChildProfile) => void;
 };
 
-function formatAge(ageInMonths?: number) {
-  if (!ageInMonths) return '';
-  const years = Math.floor(ageInMonths / 12);
-  const months = ageInMonths % 12;
-  return `${years} yrs ${months} mos`;
-}
-
 export default function ChildSwitcherSheet({
   visible,
   onClose,
@@ -39,8 +33,18 @@ export default function ChildSwitcherSheet({
   onEditChild,
 }: ChildSwitcherSheetProps) {
   const { scaleSize, padding } = useResponsive();
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { user, activeChildId, setActiveChildId } = useAuth();
   const children = user?.children || [];
+  const caregiver = user?.caregiverProfile;
+
+  const formatAge = (ageInMonths?: number) => {
+    if (!ageInMonths) return '';
+    const years = Math.floor(ageInMonths / 12);
+    const months = ageInMonths % 12;
+    return `${years} ${dateLocale.years} ${months} ${dateLocale.months}`;
+  };
 
   const handleSelect = (child: ChildProfile) => {
     setActiveChildId(child.id);
@@ -59,23 +63,33 @@ export default function ChildSwitcherSheet({
       <View style={styles.sheet}>
         <View style={[styles.handle, { width: scaleSize(40), height: scaleSize(4), borderRadius: scaleSize(999) }]} />
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { fontSize: scaleSize(18) }]}>Add Children</Text>
+          <Text style={[styles.title, { fontSize: scaleSize(18) }]}>{t('addChildren')}</Text>
           <Pressable onPress={onClose} hitSlop={scaleSize(10)}>
             <CloseIcon width={scaleSize(20)} height={scaleSize(20)} />
           </Pressable>
         </View>
         <Text style={[styles.subtitle, { fontSize: scaleSize(13), paddingHorizontal: scaleSize(24), marginBottom: scaleSize(16) }]}>
-          Add another child and track everyone's progress
+          {t('addChildrenSubtitle')}
         </Text>
+
+        <View style={[styles.caregiverCard, { marginHorizontal: scaleSize(20), padding: scaleSize(14), borderRadius: scaleSize(18), marginBottom: scaleSize(20) }]}> 
+          <View style={[styles.caregiverAvatar, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(24) }]}> 
+            <AvatarIcon width={scaleSize(28)} height={scaleSize(28)} />
+          </View>
+          <View style={styles.caregiverInfo}>
+            <Text style={[styles.caregiverName, { fontSize: scaleSize(16) }]}>{caregiver?.name || t('caregiver')}</Text>
+            <Text style={[styles.caregiverMeta, { fontSize: scaleSize(11) }]}>{caregiver?.role || t('parent')}{caregiver?.email ? `  •  ${caregiver.email}` : ''}</Text>
+          </View>
+        </View>
 
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: scaleSize(24) }}
         >
-          <Text style={[styles.sectionLabel, { fontSize: scaleSize(11), marginBottom: scaleSize(10) }]}>YOUR CHILDREN</Text>
+          <Text style={[styles.sectionLabel, { fontSize: scaleSize(11), marginBottom: scaleSize(10), marginHorizontal: scaleSize(20) }]}>{t('yourChildren')}</Text>
 
-          <View style={{ gap: scaleSize(12) }}>
+          <View style={{ gap: scaleSize(12), marginHorizontal: scaleSize(20) }}>
             {children.map((child) => {
               const isActive = child.id === activeChildId;
               return (
@@ -92,7 +106,7 @@ export default function ChildSwitcherSheet({
                         <Text style={[styles.childName, { fontSize: scaleSize(16) }]}>{child.name}</Text>
                         {isActive && (
                           <View style={[styles.activeBadge, { paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(2), borderRadius: scaleSize(10) }]}>
-                            <Text style={[styles.activeText, { fontSize: scaleSize(10) }]}>ACTIVE</Text>
+                            <Text style={[styles.activeText, { fontSize: scaleSize(10) }]}>{t('active')}</Text>
                           </View>
                         )}
                       </View>
@@ -101,10 +115,11 @@ export default function ChildSwitcherSheet({
                   </Pressable>
                   <Pressable
                     onPress={() => onEditChild(child)}
-                    style={[styles.editBtn, { width: scaleSize(32), height: scaleSize(32), borderRadius: scaleSize(16) }]}
-                    hitSlop={scaleSize(10)}
+                    style={styles.editDetailsBtn}
+                    hitSlop={scaleSize(8)}
                   >
-                    <EditIcon width={scaleSize(16)} height={scaleSize(16)} />
+                    <EditIcon width={scaleSize(14)} height={scaleSize(14)} />
+                    <Text style={[styles.editDetailsText, { fontSize: scaleSize(11), maxWidth: scaleSize(120) }]} numberOfLines={2}>{t('editDetails')}</Text>
                   </Pressable>
                 </View>
               );
@@ -117,7 +132,7 @@ export default function ChildSwitcherSheet({
               <View style={[styles.addChildIcon, { width: scaleSize(40), height: scaleSize(40), borderRadius: scaleSize(20) }]}>
                 <PlusIcon width={scaleSize(20)} height={scaleSize(20)} />
               </View>
-              <Text style={[styles.addChildText, { fontSize: scaleSize(14) }]}>Add another child</Text>
+              <Text style={[styles.addChildText, { fontSize: scaleSize(14) }]} numberOfLines={2}>{t('addAnotherChild')}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -141,7 +156,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingTop: 10,
     paddingBottom: 32,
-    maxHeight: '70%',
+    maxHeight: '78%',
   },
   handle: {
     backgroundColor: '#E2E4E8',
@@ -171,7 +186,7 @@ const styles = StyleSheet.create({
   },
   childCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderWidth: 2,
     borderRadius: 16,
     backgroundColor: colors.white,
@@ -182,7 +197,7 @@ const styles = StyleSheet.create({
   childMainRow: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
   },
   childAvatar: {
@@ -214,10 +229,31 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     color: colors.grey,
   },
-  editBtn: {
+  caregiverCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F3F2FF',
+    gap: 12,
+  },
+  caregiverAvatar: {
+    backgroundColor: '#E9E8FF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  caregiverInfo: { flex: 1, gap: 3 },
+  caregiverName: { fontFamily: 'Inter_700Bold', color: colors.mainBlack },
+  caregiverMeta: { fontFamily: 'Inter_400Regular', color: colors.grey },
+  editDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2,
+    alignSelf: 'flex-start',
+  },
+  editDetailsText: {
+    fontFamily: 'Inter_700Bold',
+    color: colors.primaryBlue,
+    textDecorationLine: 'underline',
   },
   addChildCard: {
     flexDirection: 'row',
@@ -237,5 +273,7 @@ const styles = StyleSheet.create({
   addChildText: {
     fontFamily: 'Inter_600SemiBold',
     color: colors.mainBlack,
+    flex: 1,
+    flexWrap: 'wrap',
   },
 });

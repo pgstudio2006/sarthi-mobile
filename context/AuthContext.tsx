@@ -26,17 +26,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function restore() {
       try {
         const storedToken = await AsyncStorage.getItem('token');
-        const storedActiveChildId = await AsyncStorage.getItem('activeChildId');
-        if (storedActiveChildId && isMounted) {
-          setActiveChildIdState(storedActiveChildId);
-        }
         if (storedToken && isMounted) {
+          setToken(storedToken);
           const result = await getMe();
-          if (result.success) {
-            setToken(storedToken);
+          if (result.success && isMounted) {
             setUser(result.data.user);
-          } else {
-            await AsyncStorage.removeItem('token');
           }
         }
       } finally {
@@ -76,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('activeChildId');
     await AsyncStorage.removeItem('onboardingCompleted');
+    await AsyncStorage.removeItem('selectedLanguage');
     setActiveChildIdState(null);
     setToken(null);
     setUser(null);

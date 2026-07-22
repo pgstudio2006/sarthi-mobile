@@ -94,25 +94,6 @@ export default function EditChildProfileScreen({ navigation, route }: { navigati
           <ChevronLeftIcon width={scaleSize(14)} height={scaleSize(14)} />
           <Text style={[styles.backText, { fontSize: scaleSize(13) }]}>Back</Text>
         </Pressable>
-        <Pressable
-          onPress={handleSave}
-          disabled={!isValid || submitting}
-          style={({ pressed }) => [
-            styles.savePill,
-            {
-              opacity: (!isValid || submitting) ? 0.5 : (pressed ? 0.9 : 1),
-              paddingHorizontal: scaleSize(16),
-              paddingVertical: scaleSize(8),
-              borderRadius: scaleSize(16),
-            },
-          ]}
-        >
-          {submitting ? (
-            <ActivityIndicator color={colors.white} size="small" />
-          ) : (
-            <Text style={[styles.savePillText, { fontSize: scaleSize(14) }]}>Save</Text>
-          )}
-        </Pressable>
       </View>
 
       <ScrollView
@@ -185,6 +166,19 @@ export default function EditChildProfileScreen({ navigation, route }: { navigati
         ) : null}
       </ScrollView>
 
+      <View style={[styles.saveFooter, { paddingHorizontal: padding, paddingBottom: scaleSize(16) }]}>
+        <Pressable
+          onPress={handleSave}
+          disabled={!isValid || submitting}
+          style={({ pressed }) => [
+            styles.saveButton,
+            { height: scaleSize(54), borderRadius: scaleSize(28), opacity: (!isValid || submitting) ? 0.5 : (pressed ? 0.9 : 1) },
+          ]}
+        >
+          {submitting ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={[styles.saveButtonText, { fontSize: scaleSize(16) }]}>Save</Text>}
+        </Pressable>
+      </View>
+
       <DatePickerModal
         visible={showDatePicker}
         initialDate={parseISODate(dob)}
@@ -225,8 +219,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     color: colors.white,
   },
-  childCard: {
+  saveFooter: {
     backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 12,
+  },
+  saveButton: {
+    backgroundColor: colors.primaryBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontFamily: 'Inter_700Bold',
+    color: colors.white,
+  },
+  childCard: {
+    display: 'none',
   },
   childCardRow: {
     flexDirection: 'row',
@@ -258,8 +267,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editTitle: {
-    fontFamily: 'Inter_800ExtraBold',
-    color: colors.mainBlack,
+    display: 'none',
   },
   fieldLabel: {
     fontFamily: 'Inter_700Bold',

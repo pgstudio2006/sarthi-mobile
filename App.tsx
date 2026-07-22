@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as NavigationBar from 'expo-navigation-bar';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -44,10 +43,6 @@ import ModerateAutismCompletionScreen from './screens/ModerateAutismCompletionSc
 import ModerateAutismReportScreen from './screens/ModerateAutismReportScreen';
 import SevereAutismCompletionScreen from './screens/SevereAutismCompletionScreen';
 import SevereAutismReportScreen from './screens/SevereAutismReportScreen';
-import WelcomeScreen from './screens/WelcomeScreen';
-import NextOnboardingScreen from './screens/NextOnboardingScreen';
-import DoctorProfileScreen from './screens/DoctorProfileScreen';
-import OtherProfileScreen from './screens/OtherProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -60,15 +55,9 @@ export default function App() {
     Inter_800ExtraBold,
   });
   const [authReady, setAuthReady] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function restore() {
-      const storedToken = await AsyncStorage.getItem('token');
-      const onboardingValue = await AsyncStorage.getItem('onboardingCompleted');
-      setToken(storedToken);
-      setOnboardingCompleted(onboardingValue === 'true');
       setAuthReady(true);
     }
     restore();
@@ -106,13 +95,6 @@ export default function App() {
           <Stack.Screen
             name="CreateProfile"
             component={CreateProfileScreen}
-            initialParams={{
-              initialChildName: 'Nitya Gandhi',
-              initialDob: '2020-05-15',
-              initialGender: 'Female',
-              initialBirthContext: 'Normal Birth',
-              nextRoute: 'Home',
-            }}
           />
           <Stack.Screen
             name="BeginScreening"
@@ -127,10 +109,6 @@ export default function App() {
           <Stack.Screen name="CognitiveScreening" component={CognitiveScreeningScreen} />
           <Stack.Screen name="SaveExit" component={SaveExitScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="NextOnboarding" component={NextOnboardingScreen} />
-          <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
-          <Stack.Screen name="OtherProfile" component={OtherProfileScreen} />
           <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} />
           <Stack.Screen name="EditChildProfile" component={EditChildProfileScreen} />
           <Stack.Screen name="ScreeningCompletion" component={ScreeningCompletionScreen} />
