@@ -8,7 +8,6 @@ import {
   Modal,
   Image,
 } from 'react-native';
-import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProgressRing from '../components/ProgressRing';
 import CheckmarkIcon from '../assets/figma/screen28/Checkmark1.png';
@@ -45,7 +44,7 @@ import BookmarkIcon from '../assets/figma/screen26/bookmarks.svg';
 import CloseIcon from '../assets/figma/screen26/Frame-32.svg';
 import ChildSwitcherSheet from '../components/ChildSwitcherSheet';
 import SideMenu from '../components/SideMenu';
-import CalendarIcon from '../assets/figma/screen28/Frame-2.svg';
+import CalendarIcon from '../assets/figma/screen28/calendar_month.svg';
 import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 
 const SECTION_QUESTION_COUNTS = [9, 5, 9, 7, 6, 4];
@@ -196,11 +195,7 @@ const STEPS = [
   { step: '3', titleKey: 'consultDoctor', subtitleKey: 'shareReportToDoctor' },
 ];
 
-const FAQS = [
-  { titleKey: 'whatIsAutism', bodyKey: 'whatIsAutismBody' },
-  { titleKey: 'whatAreSuggestedNextSteps', bodyKey: 'whatAreSuggestedNextStepsBody' },
-  { titleKey: 'whatTypeDoctorsVisit', bodyKey: 'whatTypeDoctorsVisitBody' },
-];
+const FAQS: AiFaq[] = getDynamicFAQs(0, false, [], 0, []);
 
 export default function HomeScreen({ navigation, route }: { navigation: any; route: any }) {
   const { scaleSize, padding } = useResponsive();
@@ -215,27 +210,45 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [plusMenuVisible, setPlusMenuVisible] = useState(false);
   const [childSwitcherVisible, setChildSwitcherVisible] = useState(false);
+  const [firstFoldBottom, setFirstFoldBottom] = useState(0);
+  const [showBottomStartCta, setShowBottomStartCta] = useState(false);
 
   // Screening history and loading states
   const [screeningHistory, setScreeningHistory] = useState<any[]>([]);
   const [aiFaqs, setAiFaqs] = useState<AiFaq[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const fetchHistory = useCallback(async () => {
-    if (!child?.id) return;
+  const fetchHistory = useCallback(async (overrideChildId?: string) => {
+    const id = overrideChildId || child?.id;
+    if (!id) return;
+
+    const optimistic = screening.lastCompletedSession;
+    if (optimistic?.childId === id) {
+      setScreeningHistory((prev) =>
+        prev.some((s) => s.id === optimistic.id) ? prev : [optimistic, ...prev]
+      );
+    }
+
     setHistoryLoading(true);
+
     const [historyResult, aiResult] = await Promise.all([
-      getScreeningHistory(child.id),
-      getAiFaqs(child.id),
+      getScreeningHistory(id),
+      getAiFaqs(id),
     ]);
-    if (historyResult.success) {
-      setScreeningHistory(historyResult.data.sessions);
+
+    let nextHistory = historyResult.success ? historyResult.data.sessions : [];
+    if (optimistic?.childId === id) {
+      const alreadyInApi = nextHistory.some((s: any) => s.id === optimistic.id);
+      nextHistory = alreadyInApi ? nextHistory : [optimistic, ...nextHistory];
     }
-    if (aiResult.success && aiResult.data.faqs.length === 10) {
-      setAiFaqs(aiResult.data.faqs);
-    }
+
+    setScreeningHistory(nextHistory);
     setHistoryLoading(false);
-  }, [child?.id]);
+
+    if (aiResult.success && aiResult.data.faqs.length > 0 && aiResult.data.mode !== 'generic') {
+      setAiFaqs(aiResult.data.faqs.slice(0, 10));
+    }
+  }, [child?.id, screening.lastCompletedSession]);
 
   useEffect(() => {
     fetchHistory();
@@ -367,7 +380,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
 
   // Dynamic FAQs based on completed screening counts and active session status
   const dynamicFAQs = useMemo(() => {
-    if (aiFaqs.length === 10) return aiFaqs;
+    if (aiFaqs.length > 0) return aiFaqs;
     const inProgress = activeSession !== undefined;
     let progressPercent = 0;
     const completedDomains: string[] = [];
@@ -404,7 +417,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     }
     // Default fallback rules
     if (latestCompletedSession) {
-      if (latestCompletedSession.result.includes('No Signs') || latestCompletedSession.result.includes('No Autism')) {
+      if (latestCompletedSession.result.includes('No Signs') || latestCompletedSession.result.includes('No Autism') || latestCompletedSession.result.includes('Normal')) {
         return true;
       }
       // For Mild Autism, typically Cognitive is on track
@@ -452,7 +465,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
         if (!answers[r.domain]) {
           answers[r.domain] = [];
         }
-        const val = typeof r.value === 'number' ? (r.value > 4 ? r.value - 1 : r.value) : 0;
+        const val = typeof r.score === 'number' ? Math.max(0, r.score - 1) : 0;
         answers[r.domain].push(val);
       });
     }
@@ -477,59 +490,8 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     });
   }, [navigation, latestCompletedSession, child, caregiver?.name, completedSessions]);
 
-  const insights = useMemo(() => {
-    if (!latestCompletedSession) return [];
-    
-    const baseInsights = [
-      {
-        titleKey: 'behaviouralPatterns',
-        headingKey: 'repetitiveBehavioursControl',
-        statusKey: 'doingWell',
-        statusColor: '#1A7340',
-        statusBg: '#E8F7F0',
-        Icon: BehaviourIcon,
-        iconBg: '#F04D9B',
-        bulletKeys: ['flexibleDailyRoutines', 'noRepetitiveConcerns', 'transitionsManageable'],
-      },
-      {
-        titleKey: 'speechAndLanguage',
-        headingKey: 'speechIsImproving',
-        statusKey: 'doingGreat',
-        statusColor: '#1A7340',
-        statusBg: '#E8F7F0',
-        Icon: SpeechIcon,
-        iconBg: '#1EA7F2',
-        bulletKeys: ['plus12PercentFromLastScreening', 'betterCommunicationOutcomes'],
-      },
-      {
-        titleKey: 'socialDevelopment',
-        headingKey: 'socialInteractionsProgressing',
-        statusKey: 'doingWell',
-        statusColor: '#1A7340',
-        statusBg: '#E8F7F0',
-        Icon: SocialIcon,
-        iconBg: '#9B4FD6',
-        bulletKeys: ['engagesWithPeers', 'eyeContactImproving', 'respondsToSocialCues'],
-      },
-    ];
-
-    if (latestCompletedSession.result.includes('Severe') || latestCompletedSession.result.includes('Moderate') || latestCompletedSession.result.includes('Mild')) {
-      baseInsights[0].statusKey = 'needsSupport';
-      baseInsights[0].statusColor = '#D12B2B';
-      baseInsights[0].statusBg = '#FDF2F2';
-      baseInsights[0].headingKey = 'repetitiveBehavioursNeedMonitoring';
-      baseInsights[0].bulletKeys = ['handFlappingObserved', 'difficultyRoutineChanges', 'strongAttachmentItems'];
-      baseInsights[1].statusKey = 'needsSupport';
-      baseInsights[1].statusColor = '#D12B2B';
-      baseInsights[1].statusBg = '#FDF2F2';
-      baseInsights[1].headingKey = 'speechNeedsAttention';
-      baseInsights[1].bulletKeys = ['limitedVocabulary', 'difficultyFormingSentences', 'considerSpeechTherapy'];
-    }
-    return baseInsights;
-  }, [latestCompletedSession]);
 
   const [expandedLearnMore, setExpandedLearnMore] = useState<number | null>(0);
-  const [expandedInsight, setExpandedInsight] = useState<number | null>(null);
 
   const handleViewSessionReport = useCallback((session: any) => {
     let targetRoute = 'ScreeningReport';
@@ -545,7 +507,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     if (session.responses) {
       session.responses.forEach((r: any) => {
         if (!answers[r.domain]) answers[r.domain] = [];
-        const val = typeof r.value === 'number' ? (r.value > 4 ? r.value - 1 : r.value) : 0;
+        const val = typeof r.score === 'number' ? Math.max(0, r.score - 1) : 0;
         answers[r.domain].push(val);
       });
     }
@@ -579,13 +541,18 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
   const handleContinue = useCallback(() => {
     const targetRoute = SCREENING_ROUTES[continueSectionIndex];
     setPlusMenuVisible(false);
+    if (activeSession) {
+      screening.resumeSession(activeSession);
+    }
     navigation.navigate(targetRoute);
-  }, [navigation, continueSectionIndex]);
+  }, [navigation, continueSectionIndex, activeSession, screening]);
 
   const handleStartNew = useCallback(() => {
     setPlusMenuVisible(false);
+    screening.reset();
+    navigation.setParams({ progress: undefined });
     navigation.navigate('BeginScreening');
-  }, [navigation]);
+  }, [navigation, screening]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -593,6 +560,11 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
         <ScrollView
           contentContainerStyle={{ paddingBottom: scaleSize(130) }}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            setShowBottomStartCta(y > firstFoldBottom);
+          }}
         >
           <View style={[styles.topBar, { paddingHorizontal: padding, paddingTop: scaleSize(16) }]}>
             <Pressable style={styles.profileBlock} onPress={() => setChildSwitcherVisible(true)} hitSlop={scaleSize(8)}>
@@ -615,6 +587,15 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
 
           {latestCompletedSession ? (
             <View style={{ paddingHorizontal: padding, gap: scaleSize(16), marginTop: scaleSize(16) }}>
+              {continueProgress && (
+                <HeroCard
+                  onPress={handleContinue}
+                  onContinue={handleContinue}
+                  onStartNew={handleStartNew}
+                  progress={continueProgress}
+                  childName={child?.name || t('yourChild')}
+                />
+              )}
 
               {/* Re-screen banner */}
               {daysSinceLastScreening !== null && daysSinceLastScreening >= RESCREEN_INTERVAL_DAYS && (
@@ -649,9 +630,9 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                 
                 <View style={[styles.overviewMetaRow, { marginTop: scaleSize(8) }]}>
                   <View style={styles.metaItem}>
-                    <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} />
+                    <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} color="#6B7180" />
                     <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12) }]}>
-                      {latestCompletedSession.date || '8 June 2026'}
+                      {latestCompletedSession.date || '—'}
                     </Text>
                   </View>
                   <View style={styles.metaItem}>
@@ -680,10 +661,10 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       ? { text: '#EA580C', bg: '#FFEDD5' }
                       : latestCompletedSession.result.includes('Severe')
                       ? { text: '#A83B3B', bg: '#FDF2F2' }
-                      : { text: '#D97706', bg: '#FEF3C7' };
+                      : { text: '#BB853E', bg: '#FEF3C7' };
                     return (
                       <View style={[styles.resultBadge, { backgroundColor: colors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
-                        <ResultFlagIcon width={scaleSize(14)} height={scaleSize(14)} fill={colors.text} color={colors.text} />
+                        <ResultFlagIcon width={scaleSize(14)} height={scaleSize(14)} color={colors.text} />
                         <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: colors.text, marginLeft: scaleSize(4), fontFamily: 'Inter_700Bold' }]}>
                           {t(getResultLabelKey(latestCompletedSession.result))}
                         </Text>
@@ -699,7 +680,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                     ? '#EA580C'
                     : latestCompletedSession.result.includes('Severe')
                     ? '#A83B3B'
-                    : '#D97706';
+                    : '#BB853E';
                   const progress = Math.min(1, Math.max(0, latestCompletedSession.score / latestCompletedSession.total));
                   return (
                     <View style={[styles.progressTrack, { height: scaleSize(5), borderRadius: scaleSize(3), marginTop: scaleSize(10), backgroundColor: '#E2E4E8' }]}>
@@ -722,7 +703,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       const ringSize = circleSize + ringThickness + ringGap * 2;
                       const onTrack = isDomainOnTrack(domain.key);
                       const progress = getDomainProgress(domain.key);
-                      
+
                       return (
                         <View key={domain.key} style={styles.domainItem}>
                           <View style={{ width: ringSize, height: ringSize, justifyContent: 'center', alignItems: 'center' }}>
@@ -818,60 +799,9 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                 title={t('screeningNotDiagnosis')}
                 titleColor="#535BD8"
                 subtitle={t('screeningNotDiagnosisBody')}
+                borderWidth={1}
+                borderColor="#E2E4E8"
               />
-
-              {completedSessions.length > 1 && (
-                <ScreeningTrendCard sessions={completedSessions} scaleSize={scaleSize} />
-              )}
-
-              <Text style={[styles.sectionTitle, { fontSize: scaleSize(15), fontFamily: 'Inter_600SemiBold', color: '#18182D' }]}>{t('topInsights')}</Text>
-              
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: scaleSize(15) }}>
-                {insights.map((insight, index) => {
-                  const { Icon } = insight;
-                  const isExpanded = expandedInsight === index;
-                  return (
-                    <Pressable
-                      key={insight.titleKey}
-                      onPress={() => setExpandedInsight(isExpanded ? null : index)}
-                      style={[styles.insightCard, { paddingVertical: scaleSize(17), paddingHorizontal: scaleSize(15), borderRadius: scaleSize(20), width: scaleSize(255), minHeight: scaleSize(206), backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E4E8' }]}
-                    >
-                      <View style={styles.insightHeader}>
-                        <View style={[styles.insightIconBox, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(14), backgroundColor: insight.iconBg, justifyContent: 'center', alignItems: 'center' }]}>
-                          <Icon width={scaleSize(27)} height={scaleSize(27)} />
-                        </View>
-                        <View style={{ marginLeft: scaleSize(10), flex: 1 }}>
-                          <Text style={[styles.insightTitle, { fontSize: scaleSize(13), fontFamily: 'Inter_700Bold', color: '#18182D', lineHeight: scaleSize(20) }]}>{t(insight.titleKey)}</Text>
-                          <View style={[styles.statusBadgeInline, { backgroundColor: insight.statusBg, borderRadius: scaleSize(11), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(6), alignSelf: 'flex-start', marginTop: scaleSize(4), justifyContent: 'center', alignItems: 'center' }]}>
-                            <Text style={[styles.statusBadgeText, { fontSize: scaleSize(12), color: insight.statusColor, fontFamily: 'Inter_700Bold' }]}>{t(insight.statusKey)}</Text>
-                          </View>
-                        </View>
-                      </View>
-                      <Text style={[styles.insightHeading, { fontSize: scaleSize(16), marginTop: scaleSize(22), fontFamily: 'Inter_700Bold', color: '#18182D', lineHeight: scaleSize(20) }]}>{t(insight.headingKey)}</Text>
-                      <View style={{ marginTop: scaleSize(8), gap: scaleSize(4) }}>
-                        {insight.bulletKeys.map((b: string, i: number) => (
-                          <Text key={i} style={[styles.bullet, { fontSize: scaleSize(12), fontFamily: 'Inter_500Medium', color: '#6B7180', lineHeight: scaleSize(16) }]}>• {t(b)}</Text>
-                        ))}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Pagination dots */}
-              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: scaleSize(6), marginTop: scaleSize(12) }}>
-                {insights.map((_, index) => (
-                  <View
-                    key={`dot-${index}`}
-                    style={{
-                      width: scaleSize(8),
-                      height: scaleSize(8),
-                      borderRadius: scaleSize(4),
-                      backgroundColor: expandedInsight === index ? '#5963E1' : '#E2E4E8',
-                    }}
-                  />
-                ))}
-              </View>
 
               {/* Screening History */}
               {completedSessions.length > 1 && (
@@ -885,13 +815,13 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                         ? { text: '#EA580C', bg: '#FFEDD5' }
                         : session.result.includes('Severe')
                         ? { text: '#A83B3B', bg: '#FDF2F2' }
-                        : { text: '#D97706', bg: '#FEF3C7' };
+                        : { text: '#BB853E', bg: '#FEF3C7' };
                       return (
                         <View key={`session-${index}`} style={[styles.historyCard, { borderRadius: scaleSize(16), padding: scaleSize(14) }]}>
                           <View style={styles.historyRow}>
                             <View style={styles.historyMeta}>
                               <View style={styles.metaItem}>
-                                <CalendarIcon width={scaleSize(14)} height={scaleSize(14)} />
+                                <CalendarIcon width={scaleSize(14)} height={scaleSize(14)} color="#6B7180" />
                                 <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12) }]}>{session.date || '—'}</Text>
                               </View>
                               <View style={[styles.metaItem, { marginTop: scaleSize(4) }]}>
@@ -905,7 +835,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                               {session.score} / {session.total}
                             </Text>
                             <View style={[styles.resultBadge, { backgroundColor: sessionColors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(5) }]}>
-                              <ResultFlagIcon width={scaleSize(12)} height={scaleSize(12)} fill={sessionColors.text} color={sessionColors.text} />
+                              <ResultFlagIcon width={scaleSize(12)} height={scaleSize(12)} color={sessionColors.text} />
                               <Text style={[styles.resultBadgeText, { fontSize: scaleSize(11), color: sessionColors.text, marginLeft: scaleSize(4), fontFamily: 'Inter_700Bold' }]}>
                                 {t(getResultLabelKey(session.result))}
                               </Text>
@@ -930,7 +860,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
               <Text style={[styles.sectionTitle, { fontSize: scaleSize(15), marginTop: scaleSize(4), fontFamily: 'Inter_600SemiBold', color: '#18182D' }]}>{t('learnMoreAboutChild')}</Text>
               
               <View style={{ gap: scaleSize(10) }}>
-                {FAQS.slice(0, 3).map((faq, index) => {
+                {(dynamicFAQs.length > 0 ? dynamicFAQs.slice(0, 10) : FAQS.slice(0, 10)).map((faq, index) => {
                   const isExpanded = expandedLearnMore === index;
                   return (
                     <GradientBorderCard
@@ -942,7 +872,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       padding={scaleSize(12)}
                     >
                       <View style={[styles.learnMoreHeader, { flexDirection: 'row', alignItems: 'center', gap: scaleSize(8) }]}>
-                        <Text style={[styles.learnMoreTitle, { fontSize: scaleSize(14), flex: 1, fontFamily: 'Inter_500Medium', color: '#18182D' }]}>{t(faq.titleKey)}</Text>
+                        <Text style={[styles.learnMoreTitle, { fontSize: scaleSize(14), flex: 1, fontFamily: 'Inter_500Medium', color: '#18182D' }]}>{'titleKey' in faq ? t((faq as any).titleKey) : faq.title}</Text>
                         <View style={[styles.learnMoreToggle, { width: scaleSize(20), height: scaleSize(20), borderRadius: scaleSize(10), backgroundColor: '#5963E1', justifyContent: 'center', alignItems: 'center' }]}>
                           <Text style={{ color: '#FFFFFF', fontSize: scaleSize(16), lineHeight: scaleSize(18), fontWeight: '700' }}>{isExpanded ? '−' : '+'}</Text>
                         </View>
@@ -950,22 +880,24 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       {isExpanded && (
                         <View style={{ marginTop: scaleSize(10) }}>
                           <Text style={[styles.learnMoreBody, { fontSize: scaleSize(12), fontFamily: 'Inter_400Regular', color: '#454545', lineHeight: scaleSize(15) }]}>
-                            {t(faq.bodyKey)}
+                            {'bodyKey' in faq ? t((faq as any).bodyKey) : faq.body}
                           </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: scaleSize(6), marginTop: scaleSize(10) }}>
-                            <View style={[styles.learnMoreToggle, { width: scaleSize(20), height: scaleSize(20), borderRadius: scaleSize(10), backgroundColor: '#F3F2FF', justifyContent: 'center', alignItems: 'center' }]}>
-                              <Text style={{ color: '#5963E1', fontSize: scaleSize(12), fontWeight: '700' }}>→</Text>
-                            </View>
-                            <Text style={{ fontSize: scaleSize(12), fontFamily: 'Inter_500Medium', color: '#5963E1', lineHeight: scaleSize(15) }}>
-                              {t('askSaarathiCare')}
-                            </Text>
-                          </View>
                         </View>
                       )}
                     </GradientBorderCard>
                   );
                 })}
               </View>
+            </View>
+          ) : continueProgress ? (
+            <View style={{ paddingHorizontal: padding, marginTop: scaleSize(16) }}>
+              <HeroCard
+                onPress={handleContinue}
+                onContinue={handleContinue}
+                onStartNew={handleStartNew}
+                progress={continueProgress}
+                childName={child?.name || t('yourChild')}
+              />
             </View>
           ) : (
             <>
@@ -1019,6 +951,14 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                   ))}
                 </View>
               </Section>
+
+              <View
+                style={{ height: 0 }}
+                onLayout={(e) => {
+                  const { y, height } = e.nativeEvent.layout;
+                  setFirstFoldBottom(y + height);
+                }}
+              />
 
               <Section title={t('howDoesItWork')} scaleSize={scaleSize}>
                 <View style={{ gap: 0, marginTop: scaleSize(16) }}>
@@ -1080,7 +1020,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
           )}
         </ScrollView>
 
-        {!continueProgress && !latestCompletedSession && (
+        {!continueProgress && !latestCompletedSession && showBottomStartCta && (
           <View style={[styles.initialCtaFooter, { paddingHorizontal: padding, paddingBottom: scaleSize(16) }]}>
             <Pressable
               onPress={handleStartNew}
@@ -1110,7 +1050,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
               },
             ]}
           >
-            <PlusIcon width={scaleSize(32)} height={scaleSize(32)} />
+            <PlusIcon width={scaleSize(32)} height={scaleSize(32)} color={colors.white} />
           </Pressable>
         )}
       </View>
@@ -1124,7 +1064,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
       <ChildSwitcherSheet
         visible={childSwitcherVisible}
         onClose={() => setChildSwitcherVisible(false)}
-        onSelectChild={() => { fetchHistory(); }}
+        onSelectChild={(selectedChild: ChildProfile) => { fetchHistory(selectedChild.id); }}
         onAddChild={() => { setChildSwitcherVisible(false); navigation.navigate('CreateProfile', { nextRoute: 'Home' }); }}
         onEditChild={(c: ChildProfile) => { setChildSwitcherVisible(false); navigation.navigate('EditChildProfile', { child: c }); }}
       />
@@ -1226,89 +1166,6 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
         </Modal>
       )}
     </SafeAreaView>
-  );
-}
-
-function ScreeningTrendCard({
-  sessions,
-  scaleSize,
-}: {
-  sessions: any[];
-  scaleSize: (size: number) => number;
-}) {
-  const { t } = useTranslation();
-  const plottedSessions = [...sessions]
-    .slice(0, 4)
-    .reverse()
-    .map((session) => ({
-      score: Number(session.score) || 0,
-      total: Number(session.total) || 200,
-      date: session.date || 'Screening',
-    }));
-
-  if (plottedSessions.length < 2) return null;
-
-  const chartWidth = scaleSize(278);
-  const chartHeight = scaleSize(112);
-  const horizontalPadding = scaleSize(12);
-  const verticalPadding = scaleSize(12);
-  const maxScore = Math.max(...plottedSessions.map((session) => session.total), 1);
-  const points = plottedSessions.map((session, index) => {
-    const x = horizontalPadding + (index * (chartWidth - horizontalPadding * 2)) / (plottedSessions.length - 1);
-    const y = verticalPadding + (1 - session.score / maxScore) * (chartHeight - verticalPadding * 2);
-    return { x, y, ...session };
-  });
-  const firstScore = plottedSessions[0].score;
-  const lastScore = plottedSessions[plottedSessions.length - 1].score;
-  const change = lastScore - firstScore;
-  const isImproved = change < 0;
-  const percentChange = firstScore !== 0 ? Math.round((change / firstScore) * 100) : 0;
-  const changeText = `${isImproved ? '-' : '+'}${Math.abs(percentChange)}%`;
-  const improvementText = change < 0 ? t('improvementSinceLast') : change > 0 ? t('higherScoreSinceLast') : t('noChangeSinceLast');
-  const trendStatusColor = isImproved ? '#1A7340' : change > 0 ? '#E25648' : '#6B7180';
-  const trendStatusBg = isImproved ? '#E8F7F0' : change > 0 ? '#FDF0EB' : '#F4F5F5';
-  const trendStatusText = isImproved ? t('improved') : change > 0 ? t('needsAttention') : t('inTrack');
-
-  return (
-    <View style={[styles.trendCard, { borderRadius: scaleSize(14), padding: scaleSize(12) }]}>
-      <View style={styles.trendHeader}>
-        <Text style={[styles.trendTitle, { fontSize: scaleSize(12) }]}>{t('scoreTrend')}</Text>
-        <View style={[styles.trendStatus, { borderRadius: scaleSize(10), paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(3), backgroundColor: trendStatusBg }]}>
-          <Text style={[styles.trendStatusText, { fontSize: scaleSize(9), color: trendStatusColor }]}>{trendStatusText}</Text>
-        </View>
-      </View>
-      <Svg width={chartWidth} height={chartHeight} accessibilityLabel="Screening score trend">
-        {[0.25, 0.5, 0.75].map((ratio) => {
-          const y = verticalPadding + ratio * (chartHeight - verticalPadding * 2);
-          return <Line key={ratio} x1={horizontalPadding} y1={y} x2={chartWidth - horizontalPadding} y2={y} stroke="#E6E9F3" strokeWidth={1} />;
-        })}
-        <Polyline points={points.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke={isImproved ? '#1A7340' : change > 0 ? '#E25648' : '#5963E1'} strokeWidth={scaleSize(2)} />
-        {points.map((point, index) => {
-          const isLast = index === points.length - 1;
-          return (
-            <React.Fragment key={`${point.date}-${index}`}>
-              <Circle cx={point.x} cy={point.y} r={scaleSize(3)} fill="#FFFFFF" stroke={isLast ? trendStatusColor : '#5963E1'} strokeWidth={scaleSize(1.5)} />
-              <SvgText
-                x={point.x}
-                y={chartHeight - scaleSize(1)}
-                textAnchor="middle"
-                fontFamily="Inter_500Medium"
-                fontSize={scaleSize(8)}
-                fill={isLast ? trendStatusColor : '#6B7180'}
-              >
-                {point.date.split(' ').slice(0, 2).join(' ')}
-              </SvgText>
-            </React.Fragment>
-          );
-        })}
-      </Svg>
-      <View style={[styles.trendFooter, { marginTop: scaleSize(6) }]}>
-        <View style={[styles.trendChange, { borderRadius: scaleSize(12), paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(4), backgroundColor: trendStatusBg }]}>
-          <Text style={[styles.trendChangeText, { fontSize: scaleSize(10), color: trendStatusColor }]}>{changeText}</Text>
-        </View>
-        <Text style={[styles.trendFooterText, { fontSize: scaleSize(10) }]}>{improvementText}</Text>
-      </View>
-    </View>
   );
 }
 
@@ -1745,23 +1602,6 @@ const styles = StyleSheet.create({
   checkmarkWrap: { position: 'absolute', backgroundColor: colors.white, justifyContent: 'center', alignItems: 'center' },
   domainLabel: { fontFamily: 'Inter_600SemiBold', color: '#3B3B3E' },
   disclaimer: { fontFamily: 'Inter_400Regular', color: '#6B7180' },
-  insightCard: { backgroundColor: '#F8F8FF', borderWidth: 1, borderColor: '#E2E4E8' },
-  insightHeader: { flexDirection: 'row', alignItems: 'center' },
-  insightIconBox: { justifyContent: 'center', alignItems: 'center' },
-  insightTitle: { fontFamily: 'Inter_600SemiBold', color: '#6B7180' },
-  insightHeading: { fontFamily: 'Inter_700Bold', color: '#18182D' },
-  statusBadgeInline: { justifyContent: 'center', alignItems: 'center' },
-  statusBadgeText: { fontFamily: 'Inter_700Bold' },
-  bullet: { fontFamily: 'Inter_400Regular', color: '#454545', lineHeight: 18 },
-  trendCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E4E7FB' },
-  trendHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  trendTitle: { fontFamily: 'Inter_700Bold', color: '#535BD8' },
-  trendStatus: { backgroundColor: '#DDF7D9' },
-  trendStatusText: { fontFamily: 'Inter_700Bold', color: '#2E9B4E' },
-  trendFooter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  trendChange: { backgroundColor: '#E8F7F0' },
-  trendChangeText: { fontFamily: 'Inter_700Bold', color: '#1A7340' },
-  trendFooterText: { fontFamily: 'Inter_600SemiBold', color: '#6B7180' },
   learnMoreCard: { backgroundColor: '#F8F8FF', borderWidth: 1, borderColor: '#E2E4E8' },
   learnMoreHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   learnMoreTitle: { fontFamily: 'Inter_700Bold', color: '#18182D' },

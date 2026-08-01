@@ -14,9 +14,10 @@ import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
 import { useLanguage } from '../context/LanguageContext';
 import { useScreening } from '../context/ScreeningContext';
+import { playSound } from '../utils/sounds';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
 import PauseIcon from '../assets/figma/screen18/motion_photos_paused.svg';
-import TrophyIcon from '../assets/figma/screen19/trophy.svg';
+import SectionProgressWidget from '../components/SectionProgressWidget';
 import SocialIcon from '../assets/figma/screen18/Frame-2.svg';
 import EmotionIcon from '../assets/figma/screen18/Frame-5.svg';
 import SpeechIcon from '../assets/figma/screen18/Frame-3.svg';
@@ -76,11 +77,12 @@ export default function EmotionScreeningScreen({ navigation }: { navigation: any
   const { language } = useLanguage();
   const { t } = useTranslation();
   const screening = useScreening();
-  const [answers, setAnswers] = useState<(number | null)[]>(
-    screening.getDomainAnswers('Emotion').length === QUESTIONS.length
-      ? screening.getDomainAnswers('Emotion')
-      : Array(QUESTIONS.length).fill(null)
-  );
+  const savedEmotion = screening.getDomainAnswers('Emotion');
+  const initialEmotion = Array(QUESTIONS.length).fill(null);
+  savedEmotion.forEach((a, i) => {
+    if (typeof a === 'number' && !Number.isNaN(a)) initialEmotion[i] = a;
+  });
+  const [answers, setAnswers] = useState<(number | null)[]>(initialEmotion);
   useEffect(() => {
     screening.setDomainAnswers('Emotion', answers);
   }, [answers]);
@@ -89,6 +91,7 @@ export default function EmotionScreeningScreen({ navigation }: { navigation: any
   const positionsRef = useRef<number[]>([]);
 
   const handleSelect = useCallback((questionIndex: number, optionIndex: number) => {
+    playSound('option');
     setAnswers((prev) => {
       const next = [...prev];
       next[questionIndex] = optionIndex;
@@ -115,7 +118,7 @@ export default function EmotionScreeningScreen({ navigation }: { navigation: any
     positionsRef.current[questionIndex] = event.nativeEvent.layout.y;
   }, []);
 
-  const allAnswered = answers.every((a) => a !== null);
+  const allAnswered = answers.every((a) => typeof a === 'number' && !Number.isNaN(a));
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: top }]}>
@@ -124,7 +127,7 @@ export default function EmotionScreeningScreen({ navigation }: { navigation: any
       <View style={[styles.header, { paddingHorizontal: padding }]} onLayout={onLayoutHeader}>
         <View style={styles.headerTop}>
           <Text style={[styles.sectionLabel, { fontSize: scaleFont(12), color: '#2BA8A6' }]}>SECTION 02 OF 06</Text>
-          <Pressable onPress={() => navigation.navigate('SaveExit', { sectionNumber: 2, answeredCount: answers.filter((a) => a !== null).length, totalQuestions: QUESTIONS.length })} style={styles.saveExit} hitSlop={scaleSize(10)}>
+          <Pressable onPress={() => { screening.saveProgress(); navigation.navigate('SaveExit', { sectionNumber: 2, answeredCount: answers.filter((a) => typeof a === 'number' && !Number.isNaN(a)).length, totalQuestions: QUESTIONS.length }); }} style={styles.saveExit} hitSlop={scaleSize(10)}>
             <PauseIcon width={scaleSize(16)} height={scaleSize(16)} />
             <Text style={[styles.saveExitText, { fontSize: scaleFont(11) }]}>{t('saveExit')}</Text>
           </Pressable>
@@ -184,41 +187,7 @@ export default function EmotionScreeningScreen({ navigation }: { navigation: any
         </ScrollView>
       </View>
 
-      <View style={{ paddingHorizontal: padding, paddingTop: scaleSize(12) }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: '#F3F2FF',
-            borderRadius: scaleSize(16),
-            padding: scaleSize(16),
-            gap: scaleSize(16),
-          }}
-        >
-          <TrophyIcon width={scaleSize(32)} height={scaleSize(32)} />
-          <View style={{ flex: 1, gap: scaleSize(4) }}>
-            <Text style={{ fontFamily: 'Inter_700Bold', fontSize: scaleFont(16), color: colors.mainBlack }}>
-              You're doing great!
-            </Text>
-            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: scaleFont(13), color: '#3B3B3E' }}>
-              1 section complete. You've answered 9 questions about your child so far.
-            </Text>
-            <View style={{ flexDirection: 'row', gap: scaleSize(4), marginTop: scaleSize(8) }}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: scaleSize(4),
-                    borderRadius: scaleSize(2),
-                    backgroundColor: i === 0 ? '#535BD8' : '#E2E4E8',
-                  }}
-                />
-              ))}
-            </View>
-          </View>
-        </View>
-      </View>
+
 
       <ScrollView
         ref={scrollRef}
@@ -227,6 +196,7 @@ export default function EmotionScreeningScreen({ navigation }: { navigation: any
         showsVerticalScrollIndicator={false}
       >
         <View style={{ gap: scaleSize(12), paddingTop: scaleSize(8) }}>
+          <SectionProgressWidget currentDomain="Emotion" />
           {QUESTIONS.map((question, qIndex) => (
             <View
               key={qIndex}
@@ -302,7 +272,13 @@ export default function EmotionScreeningScreen({ navigation }: { navigation: any
           <BackArrow width={scaleSize(12)} height={scaleSize(21)} />
         </Pressable>
         <Pressable
-          onPress={() => allAnswered && navigation.navigate('SpeechScreening')}
+          onPress={() => {
+                if (allAnswered) {
+                  playSound('domainComplete');
+                  screening.saveProgress();
+                  navigation.navigate('SpeechScreening');
+                }
+              }}
           style={[
             styles.continueButton,
             {

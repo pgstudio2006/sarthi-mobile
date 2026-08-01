@@ -15,11 +15,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ScreeningProvider } from './context/ScreeningContext';
+import { initSounds } from './utils/sounds';
 import SplashScreen from './screens/SplashScreen';
 import LanguageSelectionScreen from './screens/LanguageSelectionScreen';
-import AutismScreeningScreen from './screens/AutismScreeningScreen';
-import SimpleResultsScreen from './screens/SimpleResultsScreen';
-import NextStepsScreen from './screens/NextStepsScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 import PhoneAuthScreen from './screens/PhoneAuthScreen';
 import OTPVerificationScreen from './screens/OTPVerificationScreen';
 import CreateCaregiverProfileScreen from './screens/CreateCaregiverProfileScreen';
@@ -66,6 +65,7 @@ export default function App() {
   useEffect(() => {
     NavigationBar.setBackgroundColorAsync('#FFFFFF').catch(() => {});
     NavigationBar.setButtonStyleAsync('dark').catch(() => {});
+    initSounds().catch(() => {});
   }, []);
 
   if (!fontsLoaded || !authReady) {
@@ -86,9 +86,7 @@ export default function App() {
           >
           <Stack.Screen name="Splash" component={SplashScreen} />
           <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
-          <Stack.Screen name="AutismScreening" component={AutismScreeningScreen} />
-          <Stack.Screen name="SimpleResults" component={SimpleResultsScreen} />
-          <Stack.Screen name="NextSteps" component={NextStepsScreen} />
+          <Stack.Screen name="AutismScreening" component={OnboardingScreen} />
           <Stack.Screen name="PhoneAuth" component={PhoneAuthScreen} />
           <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
           <Stack.Screen name="CreateCaregiverProfile" component={CreateCaregiverProfileScreen} />

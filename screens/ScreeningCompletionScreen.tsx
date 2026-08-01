@@ -47,13 +47,17 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
   const { t } = useTranslation();
   const screening = useScreening();
 
-  const childName = route?.params?.childName ?? 'Nitya';
+  const childName = route?.params?.childName ?? t('yourChild');
   const score = route?.params?.score ?? 104;
   const total = route?.params?.total ?? 200;
   const result = route?.params?.result ?? 'Mild Autism';
-  const date = route?.params?.date ?? '8 June 2026';
-  const screener = route?.params?.screener ?? 'Dhaval (Father)';
+  const date = route?.params?.date ?? '';
+  const screener = route?.params?.screener ?? t('caregiver');
   const domainBreakdown = route?.params?.domainBreakdown;
+  const isRepeat = route?.params?.isRepeat ?? false;
+  const previousScore = route?.params?.previousScore ?? null;
+  const childId = route?.params?.childId ?? screening?.childId;
+  const completedCount = route?.params?.completedCount ?? (isRepeat ? 2 : 1);
   const progress = Math.min(1, Math.max(0, score / total));
 
   const resultLower = result.toLowerCase();
@@ -118,7 +122,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
       label: meta.label,
       Icon: meta.Icon,
       color: meta.color,
-      ringColor: breakdown?.statusColor ?? meta.ringColor,
+      ringColor: meta.ringColor,
     };
   });
 
@@ -163,29 +167,12 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: scaleSize(0), backgroundColor: '#fff', borderRadius: scaleSize(16), borderWidth: 1, borderColor: '#E2E4E8', paddingVertical: scaleSize(16) }}>
-          <View style={{ alignItems: 'center', width: scaleSize(112) }}>
-            <Text style={{ fontFamily: 'Inter_800ExtraBold', fontSize: scaleSize(20), color: '#18182D' }}>40</Text>
-            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: scaleSize(11), color: '#6B7180', marginTop: scaleSize(2) }}>{t('questionsLabel')}</Text>
-          </View>
-          <View style={{ width: 1, height: scaleSize(48), backgroundColor: '#E2E4E8' }} />
-          <View style={{ alignItems: 'center', width: scaleSize(112) }}>
-            <Text style={{ fontFamily: 'Inter_800ExtraBold', fontSize: scaleSize(20), color: '#18182D' }}>38</Text>
-            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: scaleSize(11), color: '#6B7180', marginTop: scaleSize(2) }}>{t('minutes')}</Text>
-          </View>
-          <View style={{ width: 1, height: scaleSize(48), backgroundColor: '#E2E4E8' }} />
-          <View style={{ alignItems: 'center', width: scaleSize(112) }}>
-            <Text style={{ fontFamily: 'Inter_800ExtraBold', fontSize: scaleSize(20), color: '#18182D' }}>6</Text>
-            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: scaleSize(11), color: '#6B7180', marginTop: scaleSize(2) }}>{t('domains')}</Text>
-          </View>
-        </View>
-
         <View style={[styles.overviewCard, { padding: scaleSize(16), borderRadius: scaleSize(24), borderWidth: 1, borderColor: 'rgba(83, 91, 216, 0.21)' }]}>
           <View style={[styles.overviewHeader, { paddingBottom: scaleSize(12) }]}>
             <Text style={[styles.overviewTitle, { fontSize: scaleSize(14) }]}>{t('screeningOverviewForName', { name: childName })}</Text>
             <View style={styles.overviewMetaRow}>
               <View style={styles.metaItem}>
-                <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} />
+                <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} color="#6B7180" />
                 <Text style={[styles.metaText, { fontSize: scaleSize(12) }]}>{date}</Text>
               </View>
               <View style={styles.metaItem}>
@@ -203,7 +190,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
               </Text>
             </View>
             <View style={[styles.resultBadge, { borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
-              <ResultFlagIcon width={scaleSize(14)} height={scaleSize(14)} fill="#BB853E" color="#BB853E" />
+              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color="#BB853E" />
               <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12) }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
@@ -268,7 +255,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
         <View style={[styles.resultCard, { padding: scaleSize(16), borderRadius: scaleSize(20) }]}>
           <View style={styles.resultCardHeader}>
             <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14) }]}>
-              <ResultFlagIcon width={scaleSize(28)} height={scaleSize(28)} />
+              <ResultFlagIcon width={scaleSize(28)} height={scaleSize(28)} color="#FFF" />
             </View>
             <View style={styles.resultCardTitles}>
               <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10) }]}>{t('screeningResult')}</Text>
@@ -299,7 +286,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
             <CourageIcon width={scaleSize(28)} height={scaleSize(28)} />
           </View>
           <View style={styles.infoText}>
-            <Text style={[styles.infoTitle, { fontSize: scaleSize(14), color: '#BB853E' }]}>{t('thatTookCourage')}</Text>
+            <Text style={[styles.infoTitle, { fontSize: scaleSize(14), color: '#535BD8' }]}>{t('thatTookCourage')}</Text>
             <Text style={[styles.infoBody, { fontSize: scaleSize(12) }]}>
               {t('thankYouForShowingUp', { name: childName })}
             </Text>
@@ -311,7 +298,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
             <LockIcon width={scaleSize(28)} height={scaleSize(28)} />
           </View>
           <View style={styles.infoText}>
-            <Text style={[styles.infoTitle, { fontSize: scaleSize(14), color: '#BB853E' }]}>{t('responsesSavedSecurely')}</Text>
+            <Text style={[styles.infoTitle, { fontSize: scaleSize(14), color: '#535BD8' }]}>{t('responsesSavedSecurely')}</Text>
             <Text style={[styles.infoBody, { fontSize: scaleSize(12) }]}>{t('encryptedPrivateAndYours')}</Text>
           </View>
         </View>
@@ -322,12 +309,17 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
           onPress={() =>
             navigation.navigate('ScreeningReport', {
               childName,
+              childId,
               score,
               total,
               result,
               date,
               screener,
               domainBreakdown,
+              domainAnswers: screening?.domainAnswers,
+              isRepeat,
+              previousScore,
+              completedCount,
             })
           }
           style={({ pressed }) => [

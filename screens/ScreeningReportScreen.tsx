@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { getDynamicFAQs } from '../utils/qaLogic';
-import { getAiFaqs, AiFaq } from '../api/client';
+import React, { useState, useMemo } from 'react';
+import { useReportFAQs } from '../utils/useReportFAQs';
 import {
   ScrollView,
   View,
@@ -18,7 +17,7 @@ import Svg, { Line, Circle, Path, Rect, Text as SvgText, G } from 'react-native-
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getResultColors, buildDomainTopInsights } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import GradientBorderCard from '../components/GradientBorderCard';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
@@ -32,6 +31,7 @@ import ChevronUp from '../assets/figma/screen28/Frame-6.svg';
 import Article1Icon from '../assets/figma/screen28/Frame-2.svg';
 import CheckmarkIcon from '../assets/figma/screen28/Checkmark1.png';
 import StarIcon from '../assets/figma/screen28/kid_star.svg';
+import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 
 import SocialIcon from '../assets/figma/screen28/Frame-7.svg';
 import EmotionIcon from '../assets/figma/screen28/Frame-5.svg';
@@ -214,7 +214,7 @@ const ARTICLES = [
     title: 'Suggested strategies to improve sensory issues',
     Icon: SensoryIcon,
     body: 'Autism is a neurodevelopmental difference that affects how a person communicates, interacts with others, and experiences the world. It is present from early childhood, though signs may become noticeable at different ages. Every autistic person is unique, with their own strengths, challenges, and support needs.',
-    cta: 'Ask Saarathi Care →',
+    cta: '',
   },
   {
     title: 'What are the suggested next steps?',
@@ -275,7 +275,7 @@ const DOMAIN_QUESTIONS: Record<string, string[]> = {
     "How often does the child have difficulty following a moving object with their eyes?",
     "How often does the child look at objects in unusual ways?",
     "How often does the child seem to feel little or no pain after getting hurt?",
-    "How often does the child smell, touch, or taste people or objects in unusual ways?"
+    "How often does child repeatedly smell objects, put things in their mouth, or frequently touch people?"
   ],
   Cognitive: [
     "How often does the child have difficulty staying focused on an activity?",
@@ -299,7 +299,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
   const date = route?.params?.date ?? '';
   const screener = route?.params?.screener ?? '';
   const domainBreakdown = route?.params?.domainBreakdown;
-  const childId = route?.params?.childId ?? '';
+  const childId = route?.params?.childId ?? screening?.childId ?? '';
   const progress = Math.min(1, Math.max(0, Number(score || 0) / Number(total || 1)));
 
   const resultLower = result.toLowerCase();
@@ -321,6 +321,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
     : resultLower.includes('severe')
     ? 'severeResultDescription'
     : 'mildResultDescription';
+
+  const resultColors = useMemo(() => getResultColors(result), [result]);
 
   const getStatusKey = (status: string) => {
     const lower = (status ?? '').toLowerCase();
@@ -408,7 +410,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
     if (domainBreakdown) {
       const bd = domainBreakdown.find((b: any) => b.key === d.key);
       if (bd) {
-        return { ...d, progress: bd.progress, ringColor: bd.statusColor };
+        return { ...d, progress: bd.progress };
       }
     }
     return d;
@@ -441,8 +443,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
       questions.forEach((qText, index) => {
         const answer = answers[index];
         if (answer !== null && answer !== undefined) {
-          // If answer is 2, 3, or 4 (Often, Most, Always), it's an attention area.
-          // If answer is 0 or 1 (Rarely, Sometimes), it's a strength / area working well.
+          // If answer is 2, 3, or 4 (Often, Most of the times, Almost Always), it's an attention area.
+          // If answer is 0 or 1 (Rarely or Sometimes), it's a strength / area working well.
           if (answer >= 2) {
             attention.push(qText);
           } else {
@@ -458,8 +460,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
       status: statusStr,
       statusColor: statusColorStr,
       statusBg: statusBgStr,
-      attention: attention.length > 0 ? attention : d.attention,
-      strengths: strengths.length > 0 ? strengths : d.strengths,
+      attention: attention.length > 0 ? attention : (answers.length > 0 ? [] : d.attention),
+      strengths: strengths.length > 0 ? strengths : (answers.length > 0 ? [] : d.strengths),
     };
   });
 
@@ -474,170 +476,39 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
   const insightSnap = cardWidth + insightGap;
 
   const dynamicInsights = useMemo(() => {
-    if (!domainBreakdown || domainBreakdown.length === 0) {
-      return [
-        {
-          title: 'Social Interaction',
-          heading: 'Social communication is developing',
-          status: 'Doing well',
-          statusColor: '#1A7340',
-          statusBg: '#E8F7F0',
-          color: '#9651C8',
-          Icon: SocialIcon,
-          bullets: [
-            'Responds to name and makes eye contact occasionally.',
-            'Encourage more interactive turn-taking games.',
-            'Practice social play in structured environments.'
-          ],
-        },
-        {
-          title: 'Speech & Language',
-          heading: 'Language development guidance',
-          status: 'Needs support',
-          statusColor: '#D97706',
-          statusBg: '#FEF3C7',
-          color: '#3B8DBD',
-          Icon: SpeechIcon,
-          bullets: [
-            'Expressive vocabulary is developing slowly.',
-            'Use visual schedules and pictures to prompt speech.',
-            'Sing songs and repeat common words during playtime.'
-          ],
-        },
-        {
-          title: 'Behavioural Patterns',
-          heading: 'Routines and play patterns',
-          status: 'Doing well',
-          statusColor: '#1A7340',
-          statusBg: '#E8F7F0',
-          color: '#D66A8E',
-          Icon: BehaviorIcon,
-          bullets: [
-            'Adapts well to structured daily routines.',
-            'Introduce slight changes in play to support flexibility.',
-            'Provide sensory-friendly items during transitions.'
-          ],
-        }
-      ];
-    }
-
-    const cards: any[] = [];
-
-    // 1. Social Card
-    const socialDb = domainBreakdown.find((b: any) => b.key === 'Social');
-    if (socialDb) {
-      const needsSupport = (socialDb.status ?? '').toLowerCase().includes('need') || Number(socialDb.score || 0) > (Number(socialDb.maxScore || 0) * 0.4);
-      cards.push({
-        title: 'Social Interaction',
-        heading: needsSupport ? 'Social interaction needs support' : 'Social interaction is on track',
-        status: socialDb.status,
-        statusColor: socialDb.statusColor || (needsSupport ? '#D97706' : '#1A7340'),
-        statusBg: socialDb.statusBg || (needsSupport ? '#FEF3C7' : '#E8F7F0'),
-        color: '#9651C8',
-        Icon: SocialIcon,
-        bullets: needsSupport
-          ? [
-              'Shows occasional avoidance of eye contact and direct social interaction.',
-              'Focus on structured one-on-one activities to ease social anxiety.',
-              'Use simple gestures and facial expressions to prompt reciprocal responses.'
-            ]
-          : [
-              'Comfortably responds to smiles and joins others in play.',
-              'Continue supporting interactive play with children of similar age.',
-              'Celebrate their positive interactions and social engagement.'
-            ]
-      });
-    }
-
-    // 2. Speech Card
-    const speechDb = domainBreakdown.find((b: any) => b.key === 'Speech');
-    const prevSpeechDb = previousScore?.domainBreakdown?.find((b: any) => b.key === 'Speech');
-    if (speechDb) {
-      const needsSupport = (speechDb.status ?? '').toLowerCase().includes('need') || Number(speechDb.score || 0) > (Number(speechDb.maxScore || 0) * 0.4);
-      const isImproved = prevSpeechDb ? Number(speechDb.score || 0) < Number(prevSpeechDb.score || 0) : false;
-      cards.push({
-        title: 'Speech & Language',
-        heading: isImproved
-          ? 'Speech and language is improving'
-          : needsSupport
-          ? 'Communication channels need support'
-          : 'Speech & language is on track',
-        status: speechDb.status,
-        statusColor: speechDb.statusColor || (needsSupport ? '#D97706' : '#1A7340'),
-        statusBg: speechDb.statusBg || (needsSupport ? '#FEF3C7' : '#E8F7F0'),
-        color: '#3B8DBD',
-        Icon: SpeechIcon,
-        bullets: isImproved
-          ? [
-              'Positive reduction in speech delay markers since the last screening.',
-              'Consistent therapy and home practice are producing positive outcomes.',
-              'Continue language modeling and labeling everyday items.'
-            ]
-          : needsSupport
-          ? [
-              'Speech delay signals or repetitive sounds observed.',
-              'Incorporate visual cards and options to help express immediate needs.',
-              'Read books together and highlight keywords with emphasis.'
-            ]
-          : [
-              'Meets language and verbal expression milestones appropriately.',
-              'Encourage complex sentences and back-and-forth storytelling.',
-              'Involve them in interactive conversation during regular routines.'
-            ]
-      });
-    }
-
-    // 3. Behavior Card
-    const behaviorDb = domainBreakdown.find((b: any) => b.key === 'Behavior');
-    if (behaviorDb) {
-      const needsSupport = (behaviorDb.status ?? '').toLowerCase().includes('need') || Number(behaviorDb.score || 0) > (Number(behaviorDb.maxScore || 0) * 0.4);
-      cards.push({
-        title: 'Behavioral Patterns',
-        heading: needsSupport ? 'Repetitive patterns need guidance' : 'Daily behaviors are well-balanced',
-        status: behaviorDb.status,
-        statusColor: behaviorDb.statusColor || (needsSupport ? '#D97706' : '#1A7340'),
-        statusBg: behaviorDb.statusBg || (needsSupport ? '#FEF3C7' : '#E8F7F0'),
-        color: '#D66A8E',
-        Icon: BehaviorIcon,
-        bullets: needsSupport
-          ? [
-              'Repetitive movements or high attachment to routines observed.',
-              'Use visual timetables to provide structure and ease transition stress.',
-              'Introduce tiny modifications to their favorite routines gradually.'
-            ]
-          : [
-              'Adapts easily to changes and plays flexibly with toys.',
-              'Provide safe and diverse play environments to expand interests.',
-              'Encourage imaginative pretend play to build creative flexibility.'
-            ]
-      });
-    }
-
-    return cards;
+    const built = buildDomainTopInsights(domainBreakdown, previousScore);
+    return built.length ? built : INSIGHTS;
   }, [domainBreakdown, previousScore]);
 
   const completedCount = route?.params?.completedCount ?? (isRepeat ? 2 : 1);
-  const priorityDomains = useMemo(() => {
-    if (!domainBreakdown) return [];
-    return domainBreakdown
-      .filter((b: any) => (b.status ?? '').toLowerCase().includes('need'))
-      .map((b: any) => b.key);
-  }, [domainBreakdown]);
+  const faqInput = useMemo(() => {
+    const domains = domainBreakdown
+      ? domainBreakdown.map((bd: any) => {
+          const detail = domainsDetailWithScore.find((d) => d.key === bd.key);
+          return {
+            key: bd.key,
+            label: detail?.label || bd.key,
+            score: bd.score ?? 0,
+            maxScore: bd.maxScore ?? 45,
+            status: bd.status,
+            attention: detail?.attention || [],
+            strengths: detail?.strengths || [],
+          };
+        })
+      : [];
+    return {
+      childName,
+      score,
+      total,
+      result,
+      completedCount,
+      isRepeat,
+      previousScore,
+      domains,
+    };
+  }, [childName, score, total, result, completedCount, isRepeat, previousScore, domainBreakdown, domainsDetailWithScore]);
 
-  const [reportFAQs, setReportFAQs] = useState<AiFaq[]>(() =>
-    getDynamicFAQs(completedCount, false, priorityDomains)
-  );
-  useEffect(() => {
-    let mounted = true;
-    if (!childId) return;
-    getAiFaqs(childId).then((res) => {
-      if (!mounted) return;
-      if (res.success && res.data.faqs.length === 10) {
-        setReportFAQs(res.data.faqs);
-      }
-    });
-    return () => { mounted = false; };
-  }, [childId, completedCount, priorityDomains]);
+  const reportFAQs = useReportFAQs(faqInput, childId);
 
   const [domainTab, setDomainTab] = useState<Record<string, 'attention' | 'strengths'>>(() => {
     const initial: Record<string, 'attention' | 'strengths'> = {};
@@ -650,22 +521,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
   const [openReportFaq, setOpenReportFaq] = useState<number | null>(0);
 
   const handleShare = async () => {
-    try {
-      const shareResult = await Share.share({
-        message: t('shareReportMessage', { name: childName, result: t(resultLabelKey), score: String(score), total: String(total), date }),
-      });
-      if (shareResult.action === Share.sharedAction) {
-        if (shareResult.activityType) {
-          // shared with activity type
-        } else {
-          // shared
-        }
-      } else if (shareResult.action === Share.dismissedAction) {
-        // dismissed
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    }
+    await generateScreeningReportPDF({ childName, score, total, result, date, screener, domainBreakdown, domainAnswers }, 'share');
   };
 
   return (
@@ -680,7 +536,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
         <View style={styles.titleBlock}>
           <Text style={[styles.headerTitle, { fontSize: scaleSize(16) }]}>{t('screeningReport')}</Text>
           <View style={styles.dateRow}>
-            <CalendarIcon width={scaleSize(14)} height={scaleSize(14)} />
+            <CalendarIcon width={scaleSize(14)} height={scaleSize(14)} color="#535BD8" />
             <Text style={[styles.dateText, { fontSize: scaleSize(12) }]}>{date}</Text>
           </View>
         </View>
@@ -701,10 +557,11 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
             <Text style={[styles.overviewTitle, { fontSize: scaleSize(14) }]}>{t('screeningOverviewForName', { name: childName })}</Text>
             <View style={styles.overviewMetaRow}>
               <View style={styles.metaItem}>
-                <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} />
+                <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} color="#6B7180" />
                 <Text style={[styles.metaText, { fontSize: scaleSize(12) }]}>{date}</Text>
               </View>
               <View style={styles.metaItem}>
+                <PersonIcon width={scaleSize(16)} height={scaleSize(16)} fill="#6B7180" color="#6B7180" />
                 <Text style={[styles.metaText, { fontSize: scaleSize(12) }]}>{screener}</Text>
               </View>
             </View>
@@ -717,9 +574,9 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                 {score} / {total} <Text style={{ color: '#6B7180' }}>*</Text>
               </Text>
             </View>
-            <View style={[styles.resultBadge, { borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
-              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} fill="#BB853E" color="#BB853E" />
-              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12) }]}>{t(resultLabelKey)}</Text>
+            <View style={[styles.resultBadge, { borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), backgroundColor: resultColors.bg, borderWidth: 1, borderColor: resultColors.border }]}>
+              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color={resultColors.fill} />
+              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
 
@@ -782,8 +639,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
 
         <View style={[styles.resultCard, { padding: scaleSize(14), borderRadius: scaleSize(20) }]}>
           <View style={styles.resultCardHeader}>
-            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14) }]}>
-              <FlagIcon width={scaleSize(28)} height={scaleSize(28)} />
+            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: resultColors.bg }]}>
+              <FlagIcon width={scaleSize(28)} height={scaleSize(28)} color={resultColors.fill} />
             </View>
             <View style={styles.resultCardTitles}>
               <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10) }]}>{t('screeningResult')}</Text>
@@ -825,118 +682,109 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
               {/* SVG Trend Chart */}
               <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <Svg width={width - scaleSize(64)} height={scaleSize(200)}>
-                  {/* Draw Grid Lines & Y labels */}
-                  {[70, 90, 110, 130].map((val) => {
-                    const yVal = scaleSize(165) - ((val - 60) / 80) * scaleSize(120);
-                    return (
-                      <G key={val}>
-                        <Line
-                          x1={scaleSize(35)}
-                          y1={yVal}
-                          x2={width - scaleSize(84)}
-                          y2={yVal}
-                          stroke="#E2E4E8"
-                          strokeWidth={1}
-                          strokeDasharray="4 4"
-                        />
-                        <SvgText
-                          x={scaleSize(25)}
-                          y={yVal + 3}
-                          fill="#9E9EA0"
-                          fontSize={scaleSize(10)}
-                          textAnchor="end"
-                          fontFamily="Inter_500Medium"
-                        >
-                          {val}
-                        </SvgText>
-                      </G>
-                    );
-                  })}
-
-                  {/* X Coordinates */}
                   {(() => {
-                    const x0 = scaleSize(35);
-                    const plotW = (width - scaleSize(84)) - x0;
-                    const interval = plotW / 3;
-                    const x1 = x0 + interval;
-                    const x2 = x0 + 2 * interval;
-                    const x3 = x0 + plotW;
+                    const chartW = width - scaleSize(64);
+                    const chartH = scaleSize(200);
+                    const topPad = scaleSize(52);
+                    const bottomPad = scaleSize(44);
+                    const plotTop = topPad;
+                    const plotBottom = chartH - bottomPad;
+                    const plotH = plotBottom - plotTop;
+                    const x0 = scaleSize(56);
+                    const x1 = chartW - scaleSize(56);
+                    const rawPrev = prevScoreVal ?? currentScoreVal;
+                    const rawCurr = currentScoreVal;
+                    const scoreGap = 20;
+                    const minScore = Math.min(rawPrev, rawCurr) - scoreGap;
+                    const maxScore = Math.max(rawPrev, rawCurr) + scoreGap;
+                    const scoreRange = Math.max(1, maxScore - minScore);
+                    const yFor = (val: number) => plotBottom - ((val - minScore) / scoreRange) * plotH;
+                    const y0 = yFor(rawPrev);
+                    const y1 = yFor(rawCurr);
 
-                    const y0 = scaleSize(165) - ((92 - 60) / 80) * scaleSize(120);
-                    const y1 = scaleSize(165) - ((98 - 60) / 80) * scaleSize(120);
-                    const y2 = scaleSize(165) - (((prevScoreVal ?? 104) - 60) / 80) * scaleSize(120);
-                    const y3 = scaleSize(165) - (((currentScoreVal ?? 83) - 60) / 80) * scaleSize(120);
-
-                    const renderScoreBadge = (bx: number, by: number, title: string, scoreVal: number, badgeColor: string) => {
-                      const badgeW = scaleSize(40);
-                      const badgeH = scaleSize(24);
+                    const renderMarker = (bx: number, by: number, title: string, scoreVal: number, badgeColor: string) => {
+                      const minBadgeW = scaleSize(56);
+                      const textW = title.length * scaleSize(6) + scaleSize(30);
+                      const badgeW = Math.max(minBadgeW, textW);
+                      const badgeH = scaleSize(34);
+                      const gap = scaleSize(10);
+                      const minTop = scaleSize(8);
+                      let badgeY = by - badgeH - gap;
+                      let pointerDown = true;
+                      if (badgeY < minTop) {
+                        badgeY = by + gap;
+                        pointerDown = false;
+                      }
+                      const badgeX = Math.max(badgeW / 2 + scaleSize(6), Math.min(bx, chartW - badgeW / 2 - scaleSize(6)));
                       return (
                         <G>
                           <Rect
-                            x={bx - badgeW / 2}
-                            y={by - badgeH - scaleSize(10)}
+                            x={badgeX - badgeW / 2}
+                            y={badgeY}
                             width={badgeW}
                             height={badgeH}
-                            rx={scaleSize(6)}
-                            ry={scaleSize(6)}
+                            rx={scaleSize(8)}
+                            ry={scaleSize(8)}
                             fill={badgeColor}
                           />
                           <SvgText
-                            x={bx}
-                            y={by - badgeH - scaleSize(10) + scaleSize(8)}
-                            fill="#FFFFFF"
-                            fontSize={scaleSize(7)}
-                            fontWeight="bold"
-                            textAnchor="middle"
+                            x={badgeX}
+                            y={badgeY + scaleSize(13)}
+                            fill='#FFFFFF'
+                            fontSize={scaleSize(9)}
+                            fontFamily='Inter_700Bold'
+                            textAnchor='middle'
                           >
                             {title}
                           </SvgText>
                           <SvgText
-                            x={bx}
-                            y={by - badgeH - scaleSize(10) + scaleSize(18)}
-                            fill="#FFFFFF"
-                            fontSize={scaleSize(9)}
-                            fontWeight="bold"
-                            textAnchor="middle"
+                            x={badgeX}
+                            y={badgeY + scaleSize(26)}
+                            fill='#FFFFFF'
+                            fontSize={scaleSize(12)}
+                            fontFamily='Inter_700Bold'
+                            textAnchor='middle'
                           >
                             {scoreVal}
                           </SvgText>
-                          <Path
-                            d={`M ${bx - 3} ${by - scaleSize(10)} L ${bx + 3} ${by - scaleSize(10)} L ${bx} ${by - scaleSize(6)} Z`}
-                            fill={badgeColor}
-                          />
+                          {pointerDown ? (
+                            <Path
+                              d={`M ${badgeX - scaleSize(4)} ${badgeY + badgeH} L ${badgeX + scaleSize(4)} ${badgeY + badgeH} L ${bx} ${by} Z`}
+                              fill={badgeColor}
+                            />
+                          ) : (
+                            <Path
+                              d={`M ${badgeX - scaleSize(4)} ${badgeY} L ${badgeX + scaleSize(4)} ${badgeY} L ${bx} ${by} Z`}
+                              fill={badgeColor}
+                            />
+                          )}
                         </G>
                       );
                     };
 
                     return (
                       <G>
-                        {/* Connecting lines */}
-                        <Line x1={x0} y1={y0} x2={x1} y2={y1} stroke="#535BD8" strokeWidth={2} />
-                        <Line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#535BD8" strokeWidth={2} />
-                        <Line x1={x2} y1={y2} x2={x3} y2={y3} stroke={isImproved ? '#1A7340' : '#E25648'} strokeWidth={3} />
-
-                        {/* Dots */}
-                        <Circle cx={x0} cy={y0} r={3} fill="#535BD8" />
-                        <Circle cx={x1} cy={y1} r={3} fill="#535BD8" />
-                        
-                        <Circle cx={x2} cy={y2} r={5} fill="#535BD8" />
-                        <Circle cx={x2} cy={y2} r={8} stroke="rgba(83, 91, 216, 0.2)" strokeWidth={3} fill="none" />
-
-                        <Circle cx={x3} cy={y3} r={5} fill={isImproved ? '#1A7340' : '#E25648'} />
-                        <Circle cx={x3} cy={y3} r={8} stroke={isImproved ? 'rgba(26, 115, 64, 0.2)' : 'rgba(226, 86, 72, 0.2)'} strokeWidth={3} fill="none" />
-
-                        {/* X Axis Labels */}
-                        <SvgText x={x0} y={scaleSize(185)} fill="#9E9EA0" fontSize={scaleSize(10)} textAnchor="middle">Oct '25</SvgText>
-                        <SvgText x={x1} y={scaleSize(185)} fill="#9E9EA0" fontSize={scaleSize(10)} textAnchor="middle">Jan '26</SvgText>
-                        <SvgText x={x2} y={scaleSize(185)} fill="#535BD8" fontSize={scaleSize(10)} fontWeight="bold" textAnchor="middle">2 Jun</SvgText>
-                        <SvgText x={x3} y={scaleSize(185)} fill={isImproved ? '#1A7340' : '#E25648'} fontSize={scaleSize(10)} fontWeight="bold" textAnchor="middle">
-                          {date.split(' ').slice(0, 2).join(' ')}
-                        </SvgText>
-
-                        {/* Floating Badges */}
-                        {renderScoreBadge(x2, y2, t('test1'), prevScoreVal ?? 104, '#535BD8')}
-                        {renderScoreBadge(x3, y3, t('test2'), currentScoreVal ?? 83, isImproved ? '#1A7340' : '#E25648')}
+                        {[0.25, 0.5, 0.75].map((ratio) => (
+                          <Line
+                            key={ratio}
+                            x1={scaleSize(48)}
+                            y1={plotTop + ratio * plotH}
+                            x2={chartW - scaleSize(48)}
+                            y2={plotTop + ratio * plotH}
+                            stroke='#E2E4E8'
+                            strokeWidth={1}
+                            strokeDasharray='4 4'
+                          />
+                        ))}
+                        <Line x1={x0} y1={y0} x2={x1} y2={y1} stroke={isImproved ? '#1A7340' : '#E25648'} strokeWidth={3} />
+                        <Circle cx={x0} cy={y0} r={5} fill='#535BD8' />
+                        <Circle cx={x0} cy={y0} r={8} stroke='rgba(83, 91, 216, 0.2)' strokeWidth={3} fill='none' />
+                        <Circle cx={x1} cy={y1} r={5} fill={isImproved ? '#1A7340' : '#E25648'} />
+                        <Circle cx={x1} cy={y1} r={8} stroke={isImproved ? 'rgba(26, 115, 64, 0.2)' : 'rgba(226, 86, 72, 0.2)'} strokeWidth={3} fill='none' />
+                        <SvgText x={x0} y={chartH - scaleSize(20)} fill='#9E9EA0' fontSize={scaleSize(10)} textAnchor='middle'>{prevDateStr.split(' ').slice(0, 2).join(' ')}</SvgText>
+                        <SvgText x={x1} y={chartH - scaleSize(20)} fill={isImproved ? '#1A7340' : '#E25648'} fontSize={scaleSize(10)} fontFamily='Inter_700Bold' textAnchor='middle'>{date.split(' ').slice(0, 2).join(' ')}</SvgText>
+                        {renderMarker(x0, y0, t('test1'), prevScoreVal ?? 0, '#535BD8')}
+                        {renderMarker(x1, y1, t('test2'), currentScoreVal, isImproved ? '#1A7340' : '#E25648')}
                       </G>
                     );
                   })()}
@@ -946,18 +794,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
               {/* Improvement Summary Block */}
               <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: trendStatusBg, borderRadius: scaleSize(12), padding: scaleSize(12), marginTop: scaleSize(8), gap: scaleSize(8) }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isImproved ? '#1A7340' : '#E25648', borderRadius: scaleSize(8), paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(4), gap: scaleSize(2) }}>
-                  <Svg width={scaleSize(10)} height={scaleSize(10)} viewBox="0 0 10 10">
-                    <Path
-                      d={isImproved ? "M2 8L5 2L8 8" : "M2 2L5 8L8 2"}
-                      stroke="#FFFFFF"
-                      strokeWidth={1.5}
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
-                  <Text style={{ color: '#FFFFFF', fontSize: scaleSize(11), fontFamily: 'Inter_700Bold' }}>
-                    {isImproved ? `-${percentChange}%` : `+${percentChange}%`}
+                    <Text style={{ color: '#FFFFFF', fontSize: scaleSize(11), fontFamily: 'Inter_700Bold' }}>
+                    {isImproved ? '↓' : '↑'} {isImproved ? `-${percentChange}%` : `+${percentChange}%`}
                   </Text>
                 </View>
                 <Text style={{ fontSize: scaleSize(12), color: '#18182D', fontFamily: 'Inter_600SemiBold', flex: 1 }}>
@@ -1015,17 +853,6 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
               />
             ))}
           </View>
-          <Pressable
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: scaleSize(30),
-              zIndex: 10,
-            }}
-            onPress={() => {}}
-          >
-            <AddCircleIcon width={scaleSize(48)} height={scaleSize(48)} />
-          </Pressable>
         </View>
 
         <View style={styles.section}>
@@ -1150,9 +977,6 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                         <Text style={[styles.learnMoreBodyText, { fontSize: scaleSize(12), lineHeight: scaleSize(16) }]}>
                           {faq.body}
                         </Text>
-                        <Pressable style={styles.learnMoreCta}>
-                          <Text style={[styles.learnMoreCtaText, { fontSize: scaleSize(12) }]}>{t('askSaarathiCare')} →</Text>
-                        </Pressable>
                       </View>
                     )}
                   </View>
@@ -1165,7 +989,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
 
       <View style={[styles.footer, { paddingHorizontal: padding, paddingBottom: scaleSize(16) }]}>
         <Pressable
-          onPress={() => generateScreeningReportPDF({ childName, score, total, result, date, screener, domainBreakdown, domainAnswers })}
+          onPress={() => generateScreeningReportPDF({ childName, score, total, result, date, screener, domainBreakdown, domainAnswers }, 'download')}
           style={({ pressed }) => [styles.primaryButton, { height: scaleSize(54), borderRadius: scaleSize(27), opacity: pressed ? 0.9 : 1 }]}
         >
           <DownloadIcon width={scaleSize(20)} height={scaleSize(20)} />

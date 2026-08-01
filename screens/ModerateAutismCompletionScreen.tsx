@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
+import { useScreening } from '../context/ScreeningContext';
 import ProgressRing from '../components/ProgressRing';
 import LogoIcon from '../assets/logo.svg';
 import CloseIcon from '../assets/figma/screen27/Frame-11.svg';
@@ -18,6 +19,7 @@ import FamilyStarIcon from '../assets/figma/screen27/family_star.svg';
 import CalendarIcon from '../assets/figma/screen27/calendar_month.svg';
 import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 import FlagIcon from '../assets/figma/screen27/Frame-6.svg';
+import ResultFlagIcon from '../assets/figma/screen27/Frame-10.svg';
 import WarningIcon from '../assets/figma/screen27/Frame-8.svg';
 import CourageIcon from '../assets/figma/screen27/Frame-4.svg';
 import LockIcon from '../assets/figma/screen27/lock_person.svg';
@@ -41,15 +43,16 @@ const DOMAINS = [
 export default function ModerateAutismCompletionScreen({ navigation, route }: any) {
   const { scaleSize, padding } = useResponsive();
   const { t } = useTranslation();
+  const screening = useScreening();
 
-  const childName      = route?.params?.childName     ?? 'Nitya';
+  const childName      = route?.params?.childName     ?? t('yourChild');
   const score          = route?.params?.score         ?? 141;
   const total          = route?.params?.total         ?? 200;
   const result         = route?.params?.result        ?? 'Moderate Autism';
-  const date           = route?.params?.date          ?? '8 June 2026';
-  const screener       = route?.params?.screener      ?? 'Dhaval (Father)';
+  const date           = route?.params?.date          ?? '';
+  const screener       = route?.params?.screener      ?? t('caregiver');
   const domainBreakdown = route?.params?.domainBreakdown;
-  const domainAnswers  = route?.params?.domainAnswers ?? {};
+  const domainAnswers  = route?.params?.domainAnswers ?? screening?.domainAnswers ?? {};
   const isRepeat       = route?.params?.isRepeat      ?? false;
   const previousScore  = route?.params?.previousScore ?? null;
   const progressFill   = Math.min(1, Math.max(0, score / total));
@@ -105,6 +108,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
   const handleViewReport = () => {
     navigation.navigate('ModerateAutismReport', {
       childName,
+      childId: route?.params?.childId ?? screening?.childId,
       score,
       total,
       result,
@@ -114,6 +118,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
       domainAnswers,
       isRepeat,
       previousScore,
+      completedCount: route?.params?.completedCount ?? (isRepeat ? 2 : 1),
     });
   };
 
@@ -121,7 +126,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
     const breakdown = domainBreakdown?.find((item: any) => item.key === domain.key);
     return {
       ...domain,
-      ringColor: breakdown?.statusColor ?? domain.ringColor,
+      ringColor: domain.ringColor,
     };
   });
 
@@ -173,7 +178,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
             <Text style={[styles.overviewTitle, { fontSize: scaleSize(14) }]}>{t('screeningOverviewForName', { name: childName })}</Text>
             <View style={styles.overviewMetaRow}>
               <View style={styles.metaItem}>
-                <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} />
+                <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} color="#6B7180" />
                 <Text style={[styles.metaText, { fontSize: scaleSize(12) }]}>{date}</Text>
               </View>
               <View style={styles.metaItem}>
@@ -192,7 +197,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
               </Text>
             </View>
             <View style={[styles.resultBadge, { backgroundColor: severityBg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
-              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} />
+              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color={severityColor} />
               <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: severityColor }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
@@ -256,7 +261,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
         <View style={[styles.resultCard, { padding: scaleSize(16), borderRadius: scaleSize(20), backgroundColor: severityBg }]}>
           <View style={styles.resultCardHeader}>
             <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: severityColor }]}>
-              <FlagIcon width={scaleSize(28)} height={scaleSize(28)} />
+              <ResultFlagIcon width={scaleSize(28)} height={scaleSize(28)} color="#FFF" />
             </View>
             <View style={styles.resultCardTitles}>
               <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: severityColor }]}>{t('screeningResult')}</Text>

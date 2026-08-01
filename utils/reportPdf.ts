@@ -1,5 +1,12 @@
 import { Alert } from 'react-native';
 
+import SocialIcon from '../assets/figma/screen28/Frame-7.svg';
+import EmotionIcon from '../assets/figma/screen28/Frame-5.svg';
+import SpeechIcon from '../assets/figma/screen28/Frame-15.svg';
+import BehaviorIcon from '../assets/figma/screen28/Frame-14.svg';
+import SensoryIcon from '../assets/figma/screen28/Frame-13.svg';
+import CognitiveIcon from '../assets/figma/screen28/Frame-11.svg';
+
 export type ScreeningReportData = {
   childName: string;
   score: number;
@@ -56,7 +63,7 @@ const DOMAIN_QUESTIONS: Record<string, string[]> = {
     "How often does the child have difficulty following a moving object with their eyes?",
     "How often does the child look at objects in unusual ways?",
     "How often does the child seem to feel little or no pain after getting hurt?",
-    "How often does the child smell, touch, or taste people or objects in unusual ways?",
+    "How often does child repeatedly smell objects, put things in their mouth, or frequently touch people?",
   ],
   Cognitive: [
     "How often does the child have difficulty staying focused on an activity?",
@@ -184,8 +191,8 @@ function getOverallCategory(score: number): CategoryConfig {
   if (score <= 80) {
     return {
       label: 'Mild Signs',
-      color: '#1E8E3E',
-      lightBg: '#E6F4EA',
+      color: '#BB853E',
+      lightBg: '#FFF8E1',
       explanation: 'A few early signals were noticed. These are not a diagnosis, but are worth watching.',
       recommendation: 'Monitor progress and consider a follow-up screening in a few weeks.',
     };
@@ -282,8 +289,8 @@ function buildReportHtml(data: ScreeningReportData): string {
     questions.forEach((q, i) => {
       const a = answers[i];
       if (a === null || a === undefined) missing.push(q);
-      else if (a < 2) working.push(q);
-      else if (a >= 3) attention.push(q);
+      else if (a >= 2) attention.push(q);
+      else working.push(q);
     });
 
     const workingItems = working.length
@@ -376,14 +383,85 @@ function buildReportHtml(data: ScreeningReportData): string {
         ${domainDetails}
 
         <p style='margin-top:32px;font-size:11px;color:#6B7180;'>
-          This report has been prepared based on the scores given by ${escapeHtml(screenerRole)} (from the ${total} ISAA questions). The “What's Working Well” section lists items where the score is below 2 (i.e. 1), and the “Needs Attention” section lists items where the score is 3 or higher.
+          This report has been prepared based on the scores given by ${escapeHtml(screenerRole)} (from the ${total} ISAA questions). The “What's Working Well” section lists items answered Rarely or Sometimes (score 0 or 1), and the “Needs Attention” section lists items answered Often, Most of the times or Almost Always (score 2 or higher).
         </p>
       </body>
     </html>
   `;
 }
 
-export async function generateScreeningReportPDF(data: ScreeningReportData) {
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^\w\s-]/g, '').trim() || 'report';
+}
+
+export function getResultColors(result?: string) {
+  const r = (result || '').toLowerCase();
+  if (r.includes('severe')) {
+    return { text: '#B71C1C', bg: '#FFEBEE', border: '#EA4335', fill: '#B71C1C' };
+  }
+  if (r.includes('moderate')) {
+    return { text: '#C65D00', bg: '#FFF3E0', border: '#FF9900', fill: '#C65D00' };
+  }
+  if (r.includes('mild')) {
+    return { text: '#BB853E', bg: '#FEF3C7', border: '#BB853E', fill: '#BB853E' };
+  }
+  return { text: '#1A7340', bg: '#E6F4EA', border: '#34A853', fill: '#1A7340' };
+}
+
+export type DomainInsightCard = {
+  title: string;
+  heading: string;
+  status: string;
+  statusColor: string;
+  statusBg: string;
+  color: string;
+  Icon: any;
+  bullets: string[];
+};
+
+const DOMAIN_INSIGHT_META: Record<string, { title: string; color: string; Icon: any; supportHeading: string; goodHeading: string }> = {
+  Social: { title: 'Social Interaction', color: '#9651C8', Icon: SocialIcon, supportHeading: 'Social interaction needs support', goodHeading: 'Social interaction is on track' },
+  Emotion: { title: 'Emotional Responses', color: '#2BA8A6', Icon: EmotionIcon, supportHeading: 'Emotional responses need support', goodHeading: 'Emotional responses are on track' },
+  Speech: { title: 'Speech & Language', color: '#3B8DBD', Icon: SpeechIcon, supportHeading: 'Communication needs support', goodHeading: 'Speech & language is on track' },
+  Behavior: { title: 'Behavioural Patterns', color: '#D66A8E', Icon: BehaviorIcon, supportHeading: 'Repetitive patterns need guidance', goodHeading: 'Daily behaviours are well-balanced' },
+  Sensory: { title: 'Sensory Responses', color: '#F4A261', Icon: SensoryIcon, supportHeading: 'Sensory responses need support', goodHeading: 'Sensory responses are on track' },
+  Cognitive: { title: 'Cognitive Patterns', color: '#7D6CB7', Icon: CognitiveIcon, supportHeading: 'Attention & focus need support', goodHeading: 'Cognitive skills are on track' },
+};
+
+export function buildDomainTopInsights(domainBreakdown?: any[], previousScore?: any): DomainInsightCard[] {
+  if (!domainBreakdown || domainBreakdown.length === 0) return [];
+  const cards: DomainInsightCard[] = [];
+  const order = ['Social', 'Emotion', 'Speech', 'Behavior', 'Sensory', 'Cognitive'];
+  order.forEach((key) => {
+    const meta = DOMAIN_INSIGHT_META[key];
+    const bd = domainBreakdown.find((b: any) => b.key === key);
+    if (!meta) return;
+    const score = Number(bd?.score || 0);
+    const maxScore = Number(bd?.maxScore || 45);
+    const needsSupport = (bd?.status ?? '').toLowerCase().includes('need') || score > maxScore * 0.4;
+    const prevBd = previousScore?.domainBreakdown?.find((b: any) => b.key === key);
+    const isImproved = prevBd ? score < Number(prevBd.score || 0) : false;
+    const status = bd?.status || (needsSupport ? 'Needs support' : 'Doing well');
+    const statusColor = bd?.statusColor || (needsSupport ? '#D97706' : '#1A7340');
+    const statusBg = bd?.statusBg || (needsSupport ? '#FEF3C7' : '#E8F7F0');
+    const heading = isImproved ? meta.goodHeading : needsSupport ? meta.supportHeading : meta.goodHeading;
+    const activities = (DOMAIN_ACTIVITIES[key] || []).slice(0, 3);
+    const bullets = activities.length ? activities : ['Keep supporting development with age-appropriate activities.', 'Praise small wins during daily routines.', 'Monitor progress and repeat screening if needed.'];
+    cards.push({
+      title: meta.title,
+      heading,
+      status,
+      statusColor,
+      statusBg,
+      color: meta.color,
+      Icon: meta.Icon,
+      bullets,
+    });
+  });
+  return cards;
+}
+
+export async function generateScreeningReportPDF(data: ScreeningReportData, action: 'share' | 'download' = 'share') {
   let Print: any;
   let Sharing: any;
   try {
@@ -406,15 +484,38 @@ export async function generateScreeningReportPDF(data: ScreeningReportData) {
       html: buildReportHtml(data),
     });
 
+    let shareUri = uri;
+    let dialogTitle = `${data.childName} Screening Report`;
+    if (action === 'download') {
+      dialogTitle = `Download ${data.childName} Screening Report`;
+    }
+
+    let FileSystem: any;
+    try {
+      // @ts-ignore
+      FileSystem = require('expo-file-system/legacy');
+    } catch {
+      // fall through to share with original URI
+    }
+
+    if (FileSystem && FileSystem.cacheDirectory && FileSystem.makeDirectoryAsync && FileSystem.copyAsync) {
+      const reportDir = `${FileSystem.cacheDirectory}reports`;
+      const fileName = `${sanitizeFileName(data.childName)} - Screening report by Saarathi.pdf`;
+      const reportUri = `${reportDir}/${fileName}`;
+      await FileSystem.makeDirectoryAsync(reportDir, { intermediates: true });
+      await FileSystem.copyAsync({ from: uri, to: reportUri });
+      shareUri = reportUri;
+    }
+
     if (Sharing && Sharing.isAvailableAsync) {
       const available = await Sharing.isAvailableAsync();
       if (available && Sharing.shareAsync) {
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `${data.childName} Screening Report` });
+        await Sharing.shareAsync(shareUri, { mimeType: 'application/pdf', dialogTitle });
         return;
       }
     }
 
-    Alert.alert('Report saved', `PDF saved to ${uri}`);
+    Alert.alert('Report saved', `PDF saved to ${shareUri}`);
   } catch (err: any) {
     Alert.alert('PDF generation failed', err?.message || 'Unknown error');
   }
