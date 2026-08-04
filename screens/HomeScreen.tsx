@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
   ScrollView,
   Text,
@@ -8,6 +8,7 @@ import {
   Modal,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProgressRing from '../components/ProgressRing';
 import CheckmarkIcon from '../assets/figma/screen28/Checkmark1.png';
@@ -146,6 +147,15 @@ function getResultLabelKey(result: string): string {
   return 'screeningResult';
 }
 
+function getShortResultLabelKey(result: string): string {
+  const r = result.toLowerCase();
+  if (r.includes('normal') || r.includes('no signs') || r.includes('no autism')) return 'resultShortNormal';
+  if (r.includes('mild')) return 'resultShortMild';
+  if (r.includes('moderate')) return 'resultShortModerate';
+  if (r.includes('severe')) return 'resultShortSevere';
+  return 'screeningResult';
+}
+
 function formatScreeningDate(value?: string | null) {
   if (!value) return '';
   const date = new Date(value);
@@ -214,9 +224,14 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
   const [showBottomStartCta, setShowBottomStartCta] = useState(false);
 
   // Screening history and loading states
-  const [screeningHistory, setScreeningHistory] = useState<any[]>([]);
-  const [aiFaqs, setAiFaqs] = useState<AiFaq[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const preloadedHistory = route.params?.preloadedHistory;
+  const preloadedAiFaqs = route.params?.preloadedAiFaqs;
+
+  const [screeningHistory, setScreeningHistory] = useState<any[]>(preloadedHistory || []);
+  const [aiFaqs, setAiFaqs] = useState<AiFaq[]>(preloadedAiFaqs || []);
+  const [historyLoading, setHistoryLoading] = useState(!preloadedHistory);
+  const [aiFaqsLoading, setAiFaqsLoading] = useState(false);
+  const lastAiChildIdRef = useRef<string | null>(preloadedAiFaqs?.length ? child?.id ?? null : null);
 
   const fetchHistory = useCallback(async (overrideChildId?: string) => {
     const id = overrideChildId || child?.id;
@@ -230,39 +245,76 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     }
 
     setHistoryLoading(true);
+    const historyResult = await getScreeningHistory(id);
 
-    const [historyResult, aiResult] = await Promise.all([
-      getScreeningHistory(id),
-      getAiFaqs(id),
-    ]);
-
-    let nextHistory = historyResult.success ? historyResult.data.sessions : [];
-    if (optimistic?.childId === id) {
-      const alreadyInApi = nextHistory.some((s: any) => s.id === optimistic.id);
-      nextHistory = alreadyInApi ? nextHistory : [optimistic, ...nextHistory];
+    if (historyResult.success) {
+      let nextHistory = historyResult.data.sessions;
+      if (optimistic?.childId === id) {
+        const alreadyInApi = nextHistory.some((s: any) => s.id === optimistic.id);
+        nextHistory = alreadyInApi ? nextHistory : [optimistic, ...nextHistory];
+      }
+      setScreeningHistory(nextHistory);
+      AsyncStorage.setItem(`@screening_history_${id}`, JSON.stringify(nextHistory)).catch(() => {});
     }
 
-    setScreeningHistory(nextHistory);
     setHistoryLoading(false);
-
-    if (aiResult.success && aiResult.data.faqs.length > 0 && aiResult.data.mode !== 'generic') {
-      setAiFaqs(aiResult.data.faqs.slice(0, 10));
-    }
   }, [child?.id, screening.lastCompletedSession]);
 
+  const fetchAiFaqs = useCallback(async (force = false) => {
+    const id = child?.id;
+    if (!id) return;
+    if (!force && lastAiChildIdRef.current === id) return;
+
+    setAiFaqsLoading(true);
+    try {
+      const aiResult = await getAiFaqs(id);
+      if (aiResult.success && aiResult.data.faqs.length > 0 && aiResult.data.mode !== 'generic') {
+        const nextFaqs = aiResult.data.faqs.slice(0, 10);
+        setAiFaqs(nextFaqs);
+        AsyncStorage.setItem(`@ai_faqs_${id}`, JSON.stringify(nextFaqs)).catch(() => {});
+      }
+    } finally {
+      setAiFaqsLoading(false);
+      lastAiChildIdRef.current = id;
+    }
+  }, [child?.id]);
+
   useEffect(() => {
-    fetchHistory();
+    const id = child?.id;
+    if (!id) return;
+    const shouldFetchHistory = preloadedHistory === undefined;
+    const shouldFetchAi = preloadedAiFaqs === undefined;
+
+    (async () => {
+      try {
+        if (shouldFetchHistory) {
+          const cached = await AsyncStorage.getItem(`@screening_history_${id}`);
+          if (cached) setScreeningHistory(JSON.parse(cached));
+        }
+        if (shouldFetchAi) {
+          const cached = await AsyncStorage.getItem(`@ai_faqs_${id}`);
+          if (cached) setAiFaqs(JSON.parse(cached));
+        }
+      } catch {}
+
+      if (shouldFetchHistory) fetchHistory(id);
+      if (shouldFetchAi) fetchAiFaqs();
+    })();
+
     const unsubscribe = navigation.addListener('focus', () => {
       fetchHistory();
+      fetchAiFaqs();
     });
     return unsubscribe;
-  }, [navigation, fetchHistory]);
+  }, [navigation, fetchHistory, fetchAiFaqs, preloadedHistory, preloadedAiFaqs, child?.id]);
 
   useEffect(() => {
     if (screening.lastSubmittedAt) {
       fetchHistory();
+      lastAiChildIdRef.current = null;
+      fetchAiFaqs(true);
     }
-  }, [screening.lastSubmittedAt, fetchHistory]);
+  }, [screening.lastSubmittedAt, fetchHistory, fetchAiFaqs]);
 
   const completedCount = useMemo(() => {
     return screeningHistory.filter((s) => s.status === 'completed').length;
@@ -461,12 +513,16 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     
     const answers: Record<string, number[]> = {};
     if (session.responses) {
-      session.responses.forEach((r: any) => {
+      const sortedResponses = [...session.responses].sort((a: any, b: any) => {
+        if (a.domain !== b.domain) return a.domain.localeCompare(b.domain);
+        return (a.questionIndex ?? 0) - (b.questionIndex ?? 0);
+      });
+      sortedResponses.forEach((r: any) => {
         if (!answers[r.domain]) {
           answers[r.domain] = [];
         }
         const val = typeof r.score === 'number' ? Math.max(0, r.score - 1) : 0;
-        answers[r.domain].push(val);
+        answers[r.domain][r.questionIndex] = val;
       });
     }
 
@@ -818,27 +874,27 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                         : { text: '#BB853E', bg: '#FEF3C7' };
                       return (
                         <View key={`session-${index}`} style={[styles.historyCard, { borderRadius: scaleSize(16), padding: scaleSize(14) }]}>
-                          <View style={styles.historyRow}>
-                            <View style={styles.historyMeta}>
-                              <View style={styles.metaItem}>
-                                <CalendarIcon width={scaleSize(14)} height={scaleSize(14)} color="#6B7180" />
-                                <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12) }]}>{session.date || '—'}</Text>
-                              </View>
-                              <View style={[styles.metaItem, { marginTop: scaleSize(4) }]}>
-                                <PersonIcon width={scaleSize(14)} height={scaleSize(14)} />
-                                <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12) }]}>{session.screener || t('caregiver')}</Text>
-                              </View>
+                          <View style={[styles.historyTopRow, { marginBottom: scaleSize(10) }]}>
+                            <View style={styles.metaItem}>
+                              <CalendarIcon width={scaleSize(14)} height={scaleSize(14)} color="#6B7180" />
+                              <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12) }]}>{session.date || '—'}</Text>
+                            </View>
+                            <View style={styles.metaItem}>
+                              <PersonIcon width={scaleSize(14)} height={scaleSize(14)} />
+                              <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12) }]}>{session.screener || t('caregiver')}</Text>
                             </View>
                           </View>
-                          <View style={[styles.historyScoreRow, { marginTop: scaleSize(10) }]}>
-                            <Text style={[styles.scoreValue, { fontSize: scaleSize(18), fontFamily: 'Inter_800ExtraBold', color: '#18182D' }]}>
-                              {session.score} / {session.total}
-                            </Text>
-                            <View style={[styles.resultBadge, { backgroundColor: sessionColors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(5) }]}>
-                              <ResultFlagIcon width={scaleSize(12)} height={scaleSize(12)} color={sessionColors.text} />
-                              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(11), color: sessionColors.text, marginLeft: scaleSize(4), fontFamily: 'Inter_700Bold' }]}>
-                                {t(getResultLabelKey(session.result))}
+                          <View style={styles.historyScoreRow}>
+                            <View style={styles.historyScoreLeft}>
+                              <Text style={[styles.scoreValue, { fontSize: scaleSize(18), fontFamily: 'Inter_800ExtraBold', color: '#18182D' }]}>
+                                {session.score} / {session.total}
                               </Text>
+                              <View style={[styles.resultBadge, { backgroundColor: sessionColors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(5) }]}>
+                                <ResultFlagIcon width={scaleSize(12)} height={scaleSize(12)} color={sessionColors.text} />
+                                <Text style={[styles.resultBadgeText, { fontSize: scaleSize(11), color: sessionColors.text, marginLeft: scaleSize(4), fontFamily: 'Inter_700Bold' }]}>
+                                  {t(getShortResultLabelKey(session.result))}
+                                </Text>
+                              </View>
                             </View>
                             <Pressable
                               onPress={() => handleViewSessionReport(session)}
@@ -910,6 +966,14 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                 style={{ marginHorizontal: padding }}
               />
 
+              <View
+                style={{ height: 0 }}
+                onLayout={(e) => {
+                  const { y, height } = e.nativeEvent.layout;
+                  setFirstFoldBottom(y + height);
+                }}
+              />
+
               <Section title={t('whyEarlyScreening')} body={t('whyEarlyScreeningBody')} scaleSize={scaleSize}>
                 <View style={{ gap: scaleSize(12), marginTop: scaleSize(16) }}>
                   {LEARN_ITEMS.map((item) => {
@@ -951,14 +1015,6 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                   ))}
                 </View>
               </Section>
-
-              <View
-                style={{ height: 0 }}
-                onLayout={(e) => {
-                  const { y, height } = e.nativeEvent.layout;
-                  setFirstFoldBottom(y + height);
-                }}
-              />
 
               <Section title={t('howDoesItWork')} scaleSize={scaleSize}>
                 <View style={{ gap: 0, marginTop: scaleSize(16) }}>
@@ -1576,9 +1632,9 @@ const styles = StyleSheet.create({
   rescreenCta: { backgroundColor: '#535BD8', justifyContent: 'center', alignItems: 'center' },
   rescreenCtaText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   historyCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E4E7FB' },
-  historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  historyMeta: { gap: 2 },
-  historyScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  historyTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  historyScoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  historyScoreLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   viewDetailsBtn: { backgroundColor: '#535BD8' },
   viewDetailsBtnText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   overviewCard: { backgroundColor: '#F3F2FF', gap: 8 },

@@ -244,7 +244,6 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
   const { scaleSize, padding } = useResponsive();
   const { t } = useTranslation();
   const screening = useScreening();
-
   const childName      = route?.params?.childName     ?? '';
   const score          = route?.params?.score         ?? 0;
   const total          = route?.params?.total         ?? 1;
@@ -366,14 +365,15 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
         });
       }
 
+      const hasAnswers = answers && answers.length > 0;
       return {
         ...d,
         score: scoreStr,
         status: statusStr,
         statusColor: statusColorStr,
         statusBg: statusBgStr,
-        attention: attention.length > 0 ? attention : (answers.length > 0 ? [] : d.attention),
-        strengths: strengths.length > 0 ? strengths : (answers.length > 0 ? [] : d.strengths),
+        attention: hasAnswers ? attention : (domainBreakdown ? [] : d.attention),
+        strengths: hasAnswers ? strengths : (domainBreakdown ? [] : d.strengths),
       };
     }),
   [domainBreakdown, domainAnswers]);

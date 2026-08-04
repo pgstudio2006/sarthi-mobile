@@ -112,12 +112,13 @@ function getDevMock<T>(path: string, options?: RequestInit): ApiResponse<T> | un
 
 async function request<T>(
   path: string,
-  options?: RequestInit
+  options?: RequestInit & { timeout?: number }
 ): Promise<ApiResponse<T>> {
   if (MOCK_API) {
     const mock = getDevMock<T>(path, options);
     if (mock) return mock;
   }
+  let controller: AbortController | undefined;
   try {
     const token = await getToken();
     const headers: Record<string, string> = {
@@ -127,14 +128,32 @@ async function request<T>(
       headers.Authorization = `Bearer ${token}`;
     }
 
+    const DEFAULT_TIMEOUT = 10000;
+    const { timeout, ...rest } = options || {};
+    const effectiveTimeout = timeout ?? DEFAULT_TIMEOUT;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    if (effectiveTimeout > 0) {
+      controller = new AbortController();
+      timeoutId = setTimeout(() => controller?.abort(), effectiveTimeout);
+    }
+
     const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: { ...headers, ...options?.headers },
+      ...rest,
+      headers: { ...headers, ...rest.headers },
+      signal: controller?.signal,
     });
+
+    if (timeoutId) clearTimeout(timeoutId);
 
     const json = await response.json().catch(() => null);
 
     if (!response.ok) {
+      if (response.status === 404) {
+        return {
+          success: false,
+          error: 'Unable to reach the server. Please check your network and try again.',
+        };
+      }
       return {
         success: false,
         error: json?.error || `Request failed with status ${response.status}`,
@@ -143,6 +162,12 @@ async function request<T>(
 
     return { success: true, data: json as T };
   } catch (err) {
+    if (controller?.signal.aborted) {
+      return {
+        success: false,
+        error: 'Request timed out. Please check your internet connection.',
+      };
+    }
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Network error',
@@ -369,6 +394,7 @@ export async function getAiFaqs(
   return request('/ai/faqs', {
     method: 'POST',
     body: JSON.stringify({ childId }),
+    timeout: 15000,
   });
 }
 
