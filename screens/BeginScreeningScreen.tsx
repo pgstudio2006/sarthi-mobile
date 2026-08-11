@@ -44,6 +44,13 @@ export default function BeginScreeningScreen({ navigation }: { navigation: any }
   }, [screening.reset]);
 
   const handleStart = async () => {
+    if (activeChild?.ageInMonths !== undefined && activeChild.ageInMonths < 36) {
+      Alert.alert(
+        'Your child is too young for this screening.',
+        'This screening is for children aged 3 years and above. If you have concerns, please consult a neurodevelopmental pediatrician.'
+      );
+      return;
+    }
     if (!childId) {
       Alert.alert(t('noChildProfile'), t('createChildProfileFirst'));
       return;

@@ -290,11 +290,11 @@ function buildReportHtml(data: ScreeningReportData): string {
     const working: string[] = [];
     const attention: string[] = [];
     const missing: string[] = [];
-    questions.forEach((q, i) => {toIsaaLabel()
-      const a = answers[i];toIsaaLabel()
-      if (a === null || toIsaaLabel(a) === undefined) missing.push(q);
-      else if (a >= 2) attention.push(q);
-      else working.push(q);
+    questions.forEach((q, i) => {
+      const a = answers[i];
+      if (a === null || a === undefined) missing.push(toIsaaLabel(q));
+      else if (a >= 2) attention.push(toIsaaLabel(q));
+      else working.push(toIsaaLabel(q));
     });
 
     const workingItems = working.length
@@ -351,7 +351,7 @@ function buildReportHtml(data: ScreeningReportData): string {
         </style>
       </head>
       <body>
-        <div style='display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div style='display:flex;align-items:center;gap:12px;margin-bottom:16px;'>
           <img src='data:image/png;base64,${LOGO_BASE64}' width='48' height='48' style='border-radius:8px;' />
           <div>
             <span style='font-size:20px;font-weight:700;color:#535BD8;'>Saarathi</span><br/>

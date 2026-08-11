@@ -17,6 +17,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { playSound } from '../utils/sounds';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
 import PauseIcon from '../assets/figma/screen18/motion_photos_paused.svg';
+import SectionProgressWidget from '../components/SectionProgressWidget';
 import SocialIcon from '../assets/figma/screen18/Frame-2.svg';
 import EmotionIcon from '../assets/figma/screen18/Frame-5.svg';
 import SpeechIcon from '../assets/figma/screen18/Frame-3.svg';
@@ -241,6 +242,7 @@ export default function SocialScreeningScreen({ navigation }: { navigation: any 
         showsVerticalScrollIndicator={false}
       >
         <View style={{ gap: scaleSize(12), paddingTop: scaleSize(8) }}>
+          <SectionProgressWidget currentDomain="Social" />
           {QUESTIONS.map((question, qIndex) => (
             <View
               key={qIndex}

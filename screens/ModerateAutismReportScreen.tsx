@@ -28,6 +28,7 @@ import CheckmarkIcon from '../assets/figma/screen28/Checkmark1.png';
 import ResultFlagIcon from '../assets/figma/screen28/Frame-10.svg';
 import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 import { useReportFAQs } from '../utils/useReportFAQs';
+import { toIsaaLabel } from '../utils/domainQuestions';
 
 import SocialIcon from '../assets/figma/screen28/Frame-7.svg';
 import EmotionIcon from '../assets/figma/screen28/Frame-5.svg';
@@ -80,7 +81,7 @@ const DEVELOPMENT_DOMAINS_STATIC = [
     label: 'Social',
     status: 'Needs support',
     statusColor: '#BB853E',
-    statusBg: '#FEF8DC',
+    statusBg: '#FDF8E8',
     color: '#9651C8',
     Icon: SocialIcon,
     score: '31/45',
@@ -116,7 +117,7 @@ const DEVELOPMENT_DOMAINS_STATIC = [
     label: 'Speech',
     status: 'Making progress',
     statusColor: '#BB853E',
-    statusBg: '#FEF8DC',
+    statusBg: '#FDF8E8',
     color: '#3B8DBD',
     Icon: SpeechIcon,
     score: '31/45',
@@ -134,7 +135,7 @@ const DEVELOPMENT_DOMAINS_STATIC = [
     label: 'Behavioural',
     status: 'Needs support',
     statusColor: '#BB853E',
-    statusBg: '#FEF8DC',
+    statusBg: '#FDF8E8',
     color: '#D66A8E',
     Icon: BehaviorIcon,
     score: '28/45',
@@ -152,7 +153,7 @@ const DEVELOPMENT_DOMAINS_STATIC = [
     label: 'Sensory',
     status: 'Making progress',
     statusColor: '#BB853E',
-    statusBg: '#FEF8DC',
+    statusBg: '#FDF8E8',
     color: '#F4A261',
     Icon: SensoryIcon,
     score: '33/45',
@@ -288,8 +289,8 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
   };
 
   // Moderate Autism colours
-  const severityColor = '#EA580C';
-  const severityBg    = '#FFEDD5';
+  const severityColor = '#E25648';
+  const severityBg    = '#FDF0EB';
 
   // Dynamic answers source: route params or context
   const contextAnswers = screening?.domainAnswers || {};

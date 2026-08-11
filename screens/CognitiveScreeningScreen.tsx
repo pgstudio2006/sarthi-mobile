@@ -19,6 +19,7 @@ import { playSound } from '../utils/sounds';
 import { useAuth } from '../context/AuthContext';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
 import PauseIcon from '../assets/figma/screen18/motion_photos_paused.svg';
+import SectionProgressWidget from '../components/SectionProgressWidget';
 import FamilyStarIcon from '../assets/figma/screen23/family_star.svg';
 import SocialIcon from '../assets/figma/screen18/Frame-2.svg';
 import EmotionIcon from '../assets/figma/screen18/Frame-5.svg';
@@ -205,42 +206,6 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
         </ScrollView>
       </View>
 
-      <View style={{ paddingHorizontal: padding, paddingTop: scaleSize(12) }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: '#F3F2FF',
-            borderRadius: scaleSize(16),
-            padding: scaleSize(16),
-            gap: scaleSize(16),
-          }}
-        >
-          <FamilyStarIcon width={scaleSize(32)} height={scaleSize(32)} />
-          <View style={{ flex: 1, gap: scaleSize(4) }}>
-            <Text style={{ fontFamily: 'Inter_700Bold', fontSize: scaleFont(16), color: colors.mainBlack }}>
-              Final section!
-            </Text>
-            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: scaleFont(13), color: '#3B3B3E' }}>
-              5 of 6 sections done. One more and you'll see your child's full screening report.
-            </Text>
-            <View style={{ flexDirection: 'row', gap: scaleSize(4), marginTop: scaleSize(8) }}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: scaleSize(4),
-                    borderRadius: scaleSize(2),
-                    backgroundColor: i < 5 ? '#535BD8' : '#E2E4E8',
-                  }}
-                />
-              ))}
-            </View>
-          </View>
-        </View>
-      </View>
-
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -248,6 +213,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
         showsVerticalScrollIndicator={false}
       >
         <View style={{ gap: scaleSize(12), paddingTop: scaleSize(8) }}>
+          <SectionProgressWidget currentDomain="Cognitive" />
           {QUESTIONS.map((question, qIndex) => (
             <View
               key={qIndex}
