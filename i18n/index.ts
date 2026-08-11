@@ -7,6 +7,7 @@ const languageToCode: Record<AppLanguage, string> = {
   Gujarati: 'gu',
   Hindi: 'hi',
   Kannada: 'kn',
+  Tamil: 'ta',
 };
 
 export function getLangCode(language: AppLanguage): string {

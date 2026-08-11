@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppLanguage, translations } from '../i18n/translations';
 
-type Language = 'English' | 'Gujarati' | 'Hindi' | 'Kannada';
+type Language = 'English' | 'Gujarati' | 'Hindi' | 'Kannada' | 'Tamil';
 
 interface LanguageContextValue {
   language: Language;
@@ -22,6 +22,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         hi: 'Hindi',
         kn: 'Kannada',
         gu: 'Gujarati',
+        ta: 'Tamil',
       };
       if (stored && languageMap[stored]) setLanguageState(languageMap[stored]);
     });
@@ -34,6 +35,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       Hindi: 'hi',
       Kannada: 'kn',
       Gujarati: 'gu',
+      Tamil: 'ta',
     };
     AsyncStorage.setItem('selectedLanguage', languageMap[nextLanguage]).catch(() => {});
   };

@@ -17,7 +17,7 @@ import Logo from '../components/Logo';
 const FIGMA_WIDTH = 390;
 
 export default function SplashScreen({ navigation }: { navigation: any }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { width } = useWindowDimensions();
   const scale = width / FIGMA_WIDTH;
   const { activeChild } = useAuth();
@@ -62,12 +62,12 @@ export default function SplashScreen({ navigation }: { navigation: any }) {
         preloadedHistoryRef.current = res.data.sessions;
       }
     });
-    getAiFaqs(activeChild.id).then((res) => {
+    getAiFaqs(activeChild.id, language).then((res) => {
       if (res.success && res.data.faqs.length > 0 && res.data.mode !== 'generic') {
         preloadedAiFaqsRef.current = res.data.faqs.slice(0, 10);
       }
     });
-  }, [targetScreen, activeChild]);
+  }, [targetScreen, activeChild, language]);
 
   useEffect(() => {
     if (!targetScreen) return;

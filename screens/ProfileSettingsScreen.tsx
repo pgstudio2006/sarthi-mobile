@@ -11,6 +11,7 @@ import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import AvatarIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
 import CloseIcon from '../assets/figma/screen26/Frame-32.svg';
 import LogoutIcon from '../assets/figma/screen25/Frame-31.svg';
 import EditIcon from '../assets/figma/screen25/stylus_note.svg';
@@ -18,6 +19,7 @@ import PremiumIcon from '../assets/figma/screen25/Frame-31.svg';
 import ChevronIcon from '../assets/figma/screen25/Frame-31.svg';
 import EditChildIcon from '../assets/figma/screen25/stylus_note.svg';
 import AvatarSmallIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarSmallBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
 import PersonIcon from '../assets/figma/screen25/Frame-31.svg';
 import CompanionIcon from '../assets/figma/screen25/Frame-31.svg';
 import SubscriptionIcon from '../assets/figma/screen25/Frame-31.svg';
@@ -168,7 +170,11 @@ export default function ProfileSettingsScreen({ navigation }: { navigation: any 
                 <View key={child.id} style={[sectionStyles.childCard, { borderColor: isActive ? '#5963E1' : '#E2E4E8', paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(14) }]}>
                   <View style={[sectionStyles.childMainRow, { gap: scaleSize(12) }]}>
                     <View style={[sectionStyles.childAvatar, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(24) }]}>
-                      <AvatarSmallIcon width={scaleSize(24)} height={scaleSize(24)} />
+                      {child.gender?.toLowerCase() === 'male' ? (
+                        <AvatarSmallBoyIcon width={scaleSize(24)} height={scaleSize(24)} />
+                      ) : (
+                        <AvatarSmallIcon width={scaleSize(24)} height={scaleSize(24)} />
+                      )}
                     </View>
                     <View style={sectionStyles.childInfo}>
                       <View style={[sectionStyles.childNameRow, { gap: scaleSize(19) }]}>

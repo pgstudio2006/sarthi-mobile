@@ -21,6 +21,7 @@ const LANGUAGES = [
   { id: 'hi', native: 'हिन्दी', english: 'Hindi' },
   { id: 'kn', native: 'ಕನ್ನಡ', english: 'Kannada' },
   { id: 'gu', native: 'ગુજરાતી', english: 'Gujarati' },
+  { id: 'ta', native: 'தமிழ்', english: 'Tamil' },
 ];
 
 export default function LanguageSelectionScreen({ navigation }: { navigation: any }) {
@@ -31,11 +32,12 @@ export default function LanguageSelectionScreen({ navigation }: { navigation: an
   const [selectedId, setSelectedId] = useState('en');
 
   const handleContinue = () => {
-    const languageMap: Record<string, 'English' | 'Gujarati' | 'Hindi' | 'Kannada'> = {
+    const languageMap: Record<string, 'English' | 'Gujarati' | 'Hindi' | 'Kannada' | 'Tamil'> = {
       en: 'English',
       hi: 'Hindi',
       kn: 'Kannada',
       gu: 'Gujarati',
+      ta: 'Tamil',
     };
     setLanguage(languageMap[selectedId]);
     navigation.navigate('AutismScreening');

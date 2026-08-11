@@ -389,11 +389,12 @@ export async function getLatestScreening(
 export type AiFaq = { title: string; body: string };
 
 export async function getAiFaqs(
-  childId: string
+  childId: string,
+  language?: string
 ): Promise<ApiResponse<{ mode: string; progress: number; completedDomains: string[]; faqs: AiFaq[] }>> {
   return request('/ai/faqs', {
     method: 'POST',
-    body: JSON.stringify({ childId }),
+    body: JSON.stringify({ childId, language }),
     timeout: 15000,
   });
 }

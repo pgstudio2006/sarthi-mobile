@@ -242,7 +242,7 @@ const DOMAIN_QUESTIONS: Record<string, string[]> = {
 
 export default function ModerateAutismReportScreen({ navigation, route }: any) {
   const { scaleSize, padding } = useResponsive();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const screening = useScreening();
   const childName      = route?.params?.childName     ?? '';
   const score          = route?.params?.score         ?? 0;
@@ -357,9 +357,9 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
           const answer = answers[idx];
           if (answer !== null && answer !== undefined) {
             if (answer >= 2) {
-              attention.push(qText);
+              attention.push(toIsaaLabel(qText));
             } else {
-              strengths.push(qText);
+              strengths.push(toIsaaLabel(qText));
             }
           }
         });
@@ -423,7 +423,7 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
     };
   }, [childName, score, total, result, completedCount, isRepeat, previousScore, domainBreakdown, domainsDetailWithScore]);
 
-  const reportFAQs = useReportFAQs(faqInput, childId);
+  const reportFAQs = useReportFAQs(faqInput, childId, language);
 
   return (
     <SafeAreaView style={styles.safeArea}>

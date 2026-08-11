@@ -12,7 +12,8 @@ import { useResponsive } from '../utils/responsive';
 import { useTranslation, useDateLocale } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { ChildProfile } from '../api/client';
-import AvatarIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarGirlIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
 import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 import PlusIcon from '../assets/figma/screen25/add_2.svg';
 import CloseIcon from '../assets/figma/screen26/Frame-32.svg';
@@ -100,7 +101,11 @@ export default function ChildSwitcherSheet({
                     onPress={() => handleSelect(child)}
                   >
                     <View style={[styles.childAvatar, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(24) }]}>
-                      <AvatarIcon width={scaleSize(28)} height={scaleSize(28)} />
+                      {child.gender?.toLowerCase() === 'male' ? (
+                        <AvatarBoyIcon width={scaleSize(28)} height={scaleSize(28)} />
+                      ) : (
+                        <AvatarGirlIcon width={scaleSize(28)} height={scaleSize(28)} />
+                      )}
                     </View>
                     <View style={styles.childInfo}>
                       <View style={styles.childNameRow}>

@@ -20,10 +20,13 @@ import { useAuth } from '../context/AuthContext';
 import { useScreening } from '../context/ScreeningContext';
 import { getScreeningHistory, getAiFaqs, ChildProfile, AiFaq } from '../api/client';
 import { getDynamicFAQs } from '../utils/qaLogic';
+import { getReportFAQs, ReportFAQInput } from '../utils/reportFaqLogic';
+import { DOMAIN_QUESTIONS } from '../utils/domainQuestions';
 import PrivacyInfoCard from '../components/PrivacyInfoCard';
 import HeroCard from '../components/HeroCard';
 import GradientBorderCard from '../components/GradientBorderCard';
-import AvatarIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarGirlIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
 import MenuIconSvg from '../assets/figma/screen16/Frame-9.svg';
 import SpotIcon from '../assets/figma/screen16/Frame-8.svg';
 import DirectionIcon from '../assets/figma/screen16/Frame-7.svg';
@@ -267,7 +270,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
 
     setAiFaqsLoading(true);
     try {
-      const aiResult = await getAiFaqs(id);
+      const aiResult = await getAiFaqs(id, language);
       if (aiResult.success && aiResult.data.faqs.length > 0 && aiResult.data.mode !== 'generic') {
         const nextFaqs = aiResult.data.faqs.slice(0, 10);
         setAiFaqs(nextFaqs);
@@ -277,7 +280,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
       setAiFaqsLoading(false);
       lastAiChildIdRef.current = id;
     }
-  }, [child?.id]);
+  }, [child?.id, language]);
 
   useEffect(() => {
     const id = child?.id;
@@ -430,10 +433,78 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
       .map((b: any) => b.key);
   }, [latestCompletedSession]);
 
+  // Build report-style FAQ input from the latest completed screening
+  const reportFaqInput = useMemo<ReportFAQInput | null>(() => {
+    if (!latestCompletedSession || completedCount === 0) return null;
+    const session = latestCompletedSession;
+
+    // Compute domain answers from responses (same logic as report screens)
+    const domainAnswers: Record<string, number[]> = {};
+    if (session.responses) {
+      (session.responses as any[]).forEach((r: any) => {
+        if (!domainAnswers[r.domain]) domainAnswers[r.domain] = [];
+        const val = typeof r.score === 'number' ? Math.max(0, r.score - 1) : 0;
+        domainAnswers[r.domain][r.questionIndex] = val;
+      });
+    }
+
+    // Build domains with attention/strengths (same logic as report screens)
+    const domains = (session.domainBreakdown || []).map((bd: any) => {
+      const questions = DOMAIN_QUESTIONS[bd.key] || [];
+      const answers = domainAnswers[bd.key] || [];
+      const attention: string[] = [];
+      const strengths: string[] = [];
+      if (answers.length > 0) {
+        questions.forEach((qText: string, index: number) => {
+          const answer = answers[index];
+          if (answer !== null && answer !== undefined) {
+            if (answer >= 2) {
+              attention.push(toIsaaLabel(qText));
+            } else {
+              strengths.push(toIsaaLabel(qText));
+            }
+          }
+        });
+      }
+      return {
+        key: bd.key,
+        label: bd.key,
+        score: bd.score ?? 0,
+        maxScore: bd.maxScore ?? 45,
+        status: bd.status ?? '',
+        attention,
+        strengths,
+      };
+    });
+
+    const prevSession = completedSessions[1];
+    const previousScore = prevSession
+      ? { totalScore: prevSession.score, date: prevSession.date }
+      : null;
+
+    return {
+      childName: child?.name,
+      score: session.score,
+      total: session.total,
+      result: session.result,
+      completedCount,
+      isRepeat: completedCount > 1,
+      previousScore,
+      domains,
+    };
+  }, [latestCompletedSession, completedCount, completedSessions, child?.name]);
+
   // Dynamic FAQs based on completed screening counts and active session status
   const dynamicFAQs = useMemo(() => {
     if (aiFaqs.length > 0) return aiFaqs;
     const inProgress = activeSession !== undefined;
+
+    // If screenings have been completed and no in-progress session,
+    // use the same report FAQs as the latest screening detailed page.
+    if (!inProgress && completedCount >= 1 && reportFaqInput) {
+      return getReportFAQs(reportFaqInput, language);
+    }
+
     let progressPercent = 0;
     const completedDomains: string[] = [];
     if (inProgress && continueProgress) {
@@ -442,7 +513,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
       completedDomains.push(...DOMAIN_KEYS.slice(0, continueSectionIndex));
     }
     return getDynamicFAQs(completedCount, inProgress, homePriorityDomains, progressPercent, completedDomains);
-  }, [aiFaqs, completedCount, activeSession, continueProgress, continueSectionIndex, homePriorityDomains]);
+  }, [aiFaqs, completedCount, activeSession, continueProgress, continueSectionIndex, homePriorityDomains, reportFaqInput, language]);
 
   // Days since last screening
   const daysSinceLastScreening = useMemo(() => {
@@ -625,7 +696,11 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
           <View style={[styles.topBar, { paddingHorizontal: padding, paddingTop: scaleSize(16) }]}>
             <Pressable style={styles.profileBlock} onPress={() => setChildSwitcherVisible(true)} hitSlop={scaleSize(8)}>
               <View style={[styles.avatarCircle, { width: scaleSize(46), height: scaleSize(46), borderRadius: scaleSize(23) }]}>
-                <AvatarIcon width={scaleSize(30)} height={scaleSize(30)} />
+                {child?.gender?.toLowerCase() === 'male' ? (
+                  <AvatarBoyIcon width={scaleSize(30)} height={scaleSize(30)} />
+                ) : (
+                  <AvatarGirlIcon width={scaleSize(30)} height={scaleSize(30)} />
+                )}
               </View>
               <View>
                 <View style={styles.nameRow}>

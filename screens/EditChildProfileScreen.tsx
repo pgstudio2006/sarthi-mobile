@@ -24,7 +24,8 @@ import {
   calculateAgeLabel,
   calculateAgeInMonths,
 } from '../utils/date';
-import AvatarIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarGirlIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
 import CalendarMonthIcon from '../assets/screen15/calendarMonth.svg';
 import EditIcon from '../assets/figma/screen25/stylus_note.svg';
 
@@ -104,7 +105,11 @@ export default function EditChildProfileScreen({ navigation, route }: { navigati
         <View style={[styles.childCard, { padding: scaleSize(16), borderRadius: scaleSize(20), marginTop: scaleSize(8), borderWidth: 2, borderColor: '#5963E1' }]}>
           <View style={styles.childCardRow}>
             <View style={[styles.avatarCircle, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(24), backgroundColor: '#FFEDC4' }]}>
-              <AvatarIcon width={scaleSize(28)} height={scaleSize(28)} />
+              {child.gender?.toLowerCase() === 'male' ? (
+                <AvatarBoyIcon width={scaleSize(28)} height={scaleSize(28)} />
+              ) : (
+                <AvatarGirlIcon width={scaleSize(28)} height={scaleSize(28)} />
+              )}
             </View>
             <View style={styles.childCardInfo}>
               <Text style={[styles.childCardName, { fontSize: scaleSize(16) }]}>{child.name}</Text>

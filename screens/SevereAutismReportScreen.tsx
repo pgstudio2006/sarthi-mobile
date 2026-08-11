@@ -28,6 +28,7 @@ import CheckmarkIcon from '../assets/figma/screen28/Checkmark1.png';
 import ResultFlagIcon from '../assets/figma/screen28/Frame-10.svg';
 import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 import { useReportFAQs } from '../utils/useReportFAQs';
+import { toIsaaLabel } from '../utils/domainQuestions';
 
 import SocialIcon from '../assets/figma/screen28/Frame-7.svg';
 import EmotionIcon from '../assets/figma/screen28/Frame-5.svg';
@@ -242,7 +243,7 @@ const DOMAIN_QUESTIONS: Record<string, string[]> = {
 
 export default function SevereAutismReportScreen({ navigation, route }: any) {
   const { scaleSize, padding } = useResponsive();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const screening = useScreening();
 
   const childName = route?.params?.childName ?? '';
@@ -363,9 +364,9 @@ export default function SevereAutismReportScreen({ navigation, route }: any) {
       questions.forEach((qText, index) => {
         const answer = answers[index];
         if (answer !== null && answer !== undefined) {
-          if (answer >= 2) {
+          if (answer >= 2) toIsaaLabel({)
             attention.push(qText);
-          } else {
+          } else {toIsaaLabel()
             strengths.push(qText);
           }
         }
@@ -431,7 +432,7 @@ export default function SevereAutismReportScreen({ navigation, route }: any) {
     };
   }, [childName, score, total, result, completedCount, isRepeat, previousScore, domainBreakdown, domainsDetailWithScore]);
 
-  const reportFAQs = useReportFAQs(faqInput, childId);
+  const reportFAQs = useReportFAQs(faqInput, childId, language);
 
   return (
     <SafeAreaView style={styles.safeArea}>
