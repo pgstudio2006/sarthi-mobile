@@ -21,7 +21,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { getScreeningHistory, getAiFaqs, ChildProfile, AiFaq } from '../api/client';
 import { getDynamicFAQs } from '../utils/qaLogic';
 import { getReportFAQs, ReportFAQInput } from '../utils/reportFaqLogic';
-import { DOMAIN_QUESTIONS } from '../utils/domainQuestions';
+import { DOMAIN_QUESTIONS, toIsaaLabel } from '../utils/domainQuestions';
 import PrivacyInfoCard from '../components/PrivacyInfoCard';
 import HeroCard from '../components/HeroCard';
 import GradientBorderCard from '../components/GradientBorderCard';
@@ -681,6 +681,117 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     navigation.navigate('BeginScreening');
   }, [navigation, screening]);
 
+  const renderOnboarding = () => (
+    <>
+      <View
+        style={{ height: 0 }}
+        onLayout={(e) => {
+          const { y, height } = e.nativeEvent.layout;
+          setFirstFoldBottom(y + height);
+        }}
+      />
+
+      <Section title={t('whyEarlyScreening')} body={t('whyEarlyScreeningBody')} scaleSize={scaleSize}>
+        <View style={{ gap: scaleSize(12), marginTop: scaleSize(16) }}>
+          {LEARN_ITEMS.map((item) => {
+            const Icon = item.Icon;
+            return (
+              <View key={item.titleKey} style={styles.learnCard}>
+                <Icon width={scaleSize(48)} height={scaleSize(48)} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.learnTitle, { fontSize: scaleSize(16) }]}>{t(item.titleKey)}</Text>
+                  <Text style={[styles.learnSubtitle, { fontSize: scaleSize(12), marginTop: scaleSize(4) }]}>{t(item.subtitleKey)}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </Section>
+
+      <Section title={t('whatWillYouLearn')} body={t('whatWillYouLearnBody')} scaleSize={scaleSize}>
+        <View style={{ gap: scaleSize(12), marginTop: scaleSize(16) }}>
+          {domainColumns.map((row, rowIndex) => (
+            <View key={`domain-row-${rowIndex}`} style={{ flexDirection: 'row', gap: scaleSize(12) }}>
+              {row.map((domain) => {
+                const Icon = domain.Icon;
+                return (
+                  <View key={domain.name} style={[styles.domainCard, { borderRadius: scaleSize(16), padding: scaleSize(12) }]}>
+                    <View style={[styles.domainIcon, { backgroundColor: domain.color, borderRadius: scaleSize(12), width: scaleSize(42), height: scaleSize(42) }]}>
+                      <Icon width={scaleSize(30)} height={scaleSize(30)} />
+                    </View>
+                    <Text style={[styles.domainText, { fontSize: scaleSize(13) }]}>{domain.name}</Text>
+                  </View>
+                );
+              })}
+              {row.length < 3
+                ? Array.from({ length: 3 - row.length }).map((_, index) => (
+                    <View key={`domain-spacer-${rowIndex}-${index}`} style={{ flex: 1 }} />
+                  ))
+                : null}
+            </View>
+          ))}
+        </View>
+      </Section>
+
+      <Section title={t('howDoesItWork')} scaleSize={scaleSize}>
+        <View style={{ gap: 0, marginTop: scaleSize(16) }}>
+          {STEPS.map((item, index) => (
+            <View key={item.step} style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <View style={{ alignItems: 'center', width: scaleSize(34) }}>
+                <View style={[styles.stepBubble, { width: scaleSize(34), height: scaleSize(34), borderRadius: scaleSize(17) }]}>
+                  <Text style={[styles.stepBubbleText, { fontSize: scaleSize(14) }]}>{item.step}</Text>
+                </View>
+                {index < STEPS.length - 1 && (
+                  <View style={{ width: scaleSize(4), height: scaleSize(39), backgroundColor: '#F3F2FF', borderRadius: scaleSize(2), marginVertical: scaleSize(2) }} />
+                )}
+              </View>
+              <View style={{ flex: 1, paddingLeft: scaleSize(14), paddingTop: scaleSize(4) }}>
+                <Text style={[styles.stepTitle, { fontSize: scaleSize(16) }]}>{t(item.titleKey)}</Text>
+                <Text style={[styles.stepBody, { fontSize: scaleSize(13), lineHeight: scaleSize(18), marginTop: scaleSize(4) }]}>{t(item.subtitleKey)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </Section>
+
+      <Section title={t('learnBeforeYouBegin')} scaleSize={scaleSize}>
+        <View style={{ gap: scaleSize(10), marginTop: scaleSize(12) }}>
+          {dynamicFAQs.map((faq, index) => {
+            const isOpen = openFaq === index;
+            return (
+              <GradientBorderCard
+                key={faq.title}
+                onPress={() => setOpenFaq(isOpen ? -1 : index)}
+                open={isOpen}
+                borderRadius={scaleSize(18)}
+                borderWidth={1}
+                padding={scaleSize(14)}
+              >
+                <View style={styles.faqHeader}>
+                  <Text style={[styles.faqTitle, { fontSize: scaleSize(14) }]}>{faq.title}</Text>
+                  <Text style={styles.faqIcon}>{isOpen ? '−' : '+'}</Text>
+                </View>
+                {isOpen ? (
+                  <Text style={[styles.faqBody, { fontSize: scaleSize(13), lineHeight: scaleSize(18), marginTop: scaleSize(10) }]}>{faq.body}</Text>
+                ) : null}
+              </GradientBorderCard>
+            );
+          })}
+        </View>
+      </Section>
+
+      <View style={{ paddingHorizontal: padding, marginTop: scaleSize(18) }}>
+        <PrivacyInfoCard
+          icon={<WarningIcon width={scaleSize(20)} height={scaleSize(20)} />}
+          backgroundColor={colors.selectedBackground}
+          title={t('screeningNotDiagnosis')}
+          titleColor="#535BD8"
+          subtitle={t('screeningNotDiagnosisBody')}
+        />
+      </View>
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.screen}>
@@ -1021,15 +1132,18 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
               </View>
             </View>
           ) : continueProgress ? (
-            <View style={{ paddingHorizontal: padding, marginTop: scaleSize(16) }}>
-              <HeroCard
-                onPress={handleContinue}
-                onContinue={handleContinue}
-                onStartNew={handleStartNew}
-                progress={continueProgress}
-                childName={child?.name || t('yourChild')}
-              />
-            </View>
+            <>
+              <View style={{ paddingHorizontal: padding, marginTop: scaleSize(16) }}>
+                <HeroCard
+                  onPress={handleContinue}
+                  onContinue={handleContinue}
+                  onStartNew={handleStartNew}
+                  progress={continueProgress}
+                  childName={child?.name || t('yourChild')}
+                />
+              </View>
+              {renderOnboarding()}
+            </>
           ) : (
             <>
               <HeroCard
@@ -1041,112 +1155,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                 style={{ marginHorizontal: padding }}
               />
 
-              <View
-                style={{ height: 0 }}
-                onLayout={(e) => {
-                  const { y, height } = e.nativeEvent.layout;
-                  setFirstFoldBottom(y + height);
-                }}
-              />
-
-              <Section title={t('whyEarlyScreening')} body={t('whyEarlyScreeningBody')} scaleSize={scaleSize}>
-                <View style={{ gap: scaleSize(12), marginTop: scaleSize(16) }}>
-                  {LEARN_ITEMS.map((item) => {
-                    const Icon = item.Icon;
-                    return (
-                      <View key={item.titleKey} style={styles.learnCard}>
-                        <Icon width={scaleSize(48)} height={scaleSize(48)} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.learnTitle, { fontSize: scaleSize(16) }]}>{t(item.titleKey)}</Text>
-                          <Text style={[styles.learnSubtitle, { fontSize: scaleSize(12), marginTop: scaleSize(4) }]}>{t(item.subtitleKey)}</Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              </Section>
-
-              <Section title={t('whatWillYouLearn')} body={t('whatWillYouLearnBody')} scaleSize={scaleSize}>
-                <View style={{ gap: scaleSize(12), marginTop: scaleSize(16) }}>
-                  {domainColumns.map((row, rowIndex) => (
-                    <View key={`domain-row-${rowIndex}`} style={{ flexDirection: 'row', gap: scaleSize(12) }}>
-                      {row.map((domain) => {
-                        const Icon = domain.Icon;
-                        return (
-                          <View key={domain.name} style={[styles.domainCard, { borderRadius: scaleSize(16), padding: scaleSize(12) }]}>
-                            <View style={[styles.domainIcon, { backgroundColor: domain.color, borderRadius: scaleSize(12), width: scaleSize(42), height: scaleSize(42) }]}>
-                              <Icon width={scaleSize(30)} height={scaleSize(30)} />
-                            </View>
-                            <Text style={[styles.domainText, { fontSize: scaleSize(13) }]}>{domain.name}</Text>
-                          </View>
-                        );
-                      })}
-                      {row.length < 3
-                        ? Array.from({ length: 3 - row.length }).map((_, index) => (
-                            <View key={`domain-spacer-${rowIndex}-${index}`} style={{ flex: 1 }} />
-                          ))
-                        : null}
-                    </View>
-                  ))}
-                </View>
-              </Section>
-
-              <Section title={t('howDoesItWork')} scaleSize={scaleSize}>
-                <View style={{ gap: 0, marginTop: scaleSize(16) }}>
-                  {STEPS.map((item, index) => (
-                    <View key={item.step} style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                      <View style={{ alignItems: 'center', width: scaleSize(34) }}>
-                        <View style={[styles.stepBubble, { width: scaleSize(34), height: scaleSize(34), borderRadius: scaleSize(17) }]}>
-                          <Text style={[styles.stepBubbleText, { fontSize: scaleSize(14) }]}>{item.step}</Text>
-                        </View>
-                        {index < STEPS.length - 1 && (
-                          <View style={{ width: scaleSize(4), height: scaleSize(39), backgroundColor: '#F3F2FF', borderRadius: scaleSize(2), marginVertical: scaleSize(2) }} />
-                        )}
-                      </View>
-                      <View style={{ flex: 1, paddingLeft: scaleSize(14), paddingTop: scaleSize(4) }}>
-                        <Text style={[styles.stepTitle, { fontSize: scaleSize(16) }]}>{t(item.titleKey)}</Text>
-                        <Text style={[styles.stepBody, { fontSize: scaleSize(13), lineHeight: scaleSize(18), marginTop: scaleSize(4) }]}>{t(item.subtitleKey)}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </Section>
-
-              <Section title={t('learnBeforeYouBegin')} scaleSize={scaleSize}>
-                <View style={{ gap: scaleSize(10), marginTop: scaleSize(12) }}>
-                  {dynamicFAQs.map((faq, index) => {
-                    const isOpen = openFaq === index;
-                    return (
-                      <GradientBorderCard
-                        key={faq.title}
-                        onPress={() => setOpenFaq(isOpen ? -1 : index)}
-                        open={isOpen}
-                        borderRadius={scaleSize(18)}
-                        borderWidth={1}
-                        padding={scaleSize(14)}
-                      >
-                        <View style={styles.faqHeader}>
-                          <Text style={[styles.faqTitle, { fontSize: scaleSize(14) }]}>{faq.title}</Text>
-                          <Text style={styles.faqIcon}>{isOpen ? '−' : '+'}</Text>
-                        </View>
-                        {isOpen ? (
-                          <Text style={[styles.faqBody, { fontSize: scaleSize(13), lineHeight: scaleSize(18), marginTop: scaleSize(10) }]}>{faq.body}</Text>
-                        ) : null}
-                      </GradientBorderCard>
-                    );
-                  })}
-                </View>
-              </Section>
-
-              <View style={{ paddingHorizontal: padding, marginTop: scaleSize(18) }}>
-                <PrivacyInfoCard
-                  icon={<WarningIcon width={scaleSize(20)} height={scaleSize(20)} />}
-                  backgroundColor={colors.selectedBackground}
-                  title={t('screeningNotDiagnosis')}
-                  titleColor="#535BD8"
-                  subtitle={t('screeningNotDiagnosisBody')}
-                />
-              </View>
+              {renderOnboarding()}
             </>
           )}
         </ScrollView>
