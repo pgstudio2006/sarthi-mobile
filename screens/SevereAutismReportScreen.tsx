@@ -364,10 +364,10 @@ export default function SevereAutismReportScreen({ navigation, route }: any) {
       questions.forEach((qText, index) => {
         const answer = answers[index];
         if (answer !== null && answer !== undefined) {
-          if (answer >= 2) toIsaaLabel({)
-            attention.push(qText);
-          } else {toIsaaLabel()
-            strengths.push(qText);
+          if (answer >= 2) {
+            attention.push(toIsaaLabel(qText));
+          } else {
+            strengths.push(toIsaaLabel(qText));
           }
         }
       });
