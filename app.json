@@ -16,7 +16,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "care.sarthi.app"
     },
     "android": {
       "package": "care.sarthi.app",
