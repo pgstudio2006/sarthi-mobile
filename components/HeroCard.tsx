@@ -22,9 +22,10 @@ interface HeroCardProps {
   childName?: string;
   progress?: HeroCardProgress;
   style?: ViewStyle;
+  disabled?: boolean;
 }
 
-export default function HeroCard({ onPress, onContinue, onStartNew, childName, progress, style }: HeroCardProps) {
+export default function HeroCard({ onPress, onContinue, onStartNew, childName, progress, style, disabled = false }: HeroCardProps) {
   const { scaleSize } = useResponsive();
   const { t } = useTranslation();
   const displayName = childName || t('yourChild');
@@ -118,13 +119,14 @@ export default function HeroCard({ onPress, onContinue, onStartNew, childName, p
 
             <View style={[styles.ctaGroup, { gap: scaleSize(12), marginTop: scaleSize(16) }]}>
               <Pressable
-                onPress={onContinue || onPress}
+                onPress={disabled ? undefined : onContinue || onPress}
                 style={({ pressed }) => [
                   styles.cta,
                   {
                     height: scaleSize(54),
                     borderRadius: scaleSize(28),
-                    opacity: pressed ? 0.95 : 1,
+                    opacity: disabled ? 0.4 : pressed ? 0.95 : 1,
+                    backgroundColor: disabled ? '#B6B8BD' : colors.primaryBlue,
                   },
                 ]}
               >
@@ -132,17 +134,19 @@ export default function HeroCard({ onPress, onContinue, onStartNew, childName, p
                 <Text style={[styles.ctaArrow, { fontSize: scaleSize(20) }]}>→</Text>
               </Pressable>
               <Pressable
-                onPress={onStartNew || onPress}
+                onPress={disabled ? undefined : onStartNew || onPress}
                 style={({ pressed }) => [
                   styles.ctaOutline,
                   {
                     height: scaleSize(53),
                     borderRadius: scaleSize(28),
-                    opacity: pressed ? 0.95 : 1,
+                    opacity: disabled ? 0.4 : pressed ? 0.95 : 1,
+                    borderColor: disabled ? '#E2E4E8' : '#E2E4E8',
+                    backgroundColor: disabled ? '#F3F2FF' : colors.white,
                   },
                 ]}
               >
-                <Text style={[styles.ctaOutlineText, { fontSize: scaleSize(16) }]}>{t('startNewScreening')}</Text>
+                <Text style={[styles.ctaOutlineText, { fontSize: scaleSize(16), color: disabled ? '#B6B8BD' : '#6B7180' }]}>{t('startNewScreening')}</Text>
               </Pressable>
             </View>
           </View>
@@ -175,14 +179,15 @@ export default function HeroCard({ onPress, onContinue, onStartNew, childName, p
             </View>
 
             <Pressable
-              onPress={onPress}
+              onPress={disabled ? undefined : onPress}
               style={({ pressed }) => [
                 styles.cta,
                 {
                   height: scaleSize(54),
                   borderRadius: scaleSize(28),
                   marginTop: scaleSize(20),
-                  opacity: pressed ? 0.95 : 1,
+                  opacity: disabled ? 0.4 : pressed ? 0.95 : 1,
+                  backgroundColor: disabled ? '#B6B8BD' : colors.primaryBlue,
                 },
               ]}
             >

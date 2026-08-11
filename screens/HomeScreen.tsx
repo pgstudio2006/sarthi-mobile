@@ -38,6 +38,7 @@ import BehaviourIcon from '../assets/figma/screen16/Frame-5.svg';
 import SensoryIcon from '../assets/figma/screen16/Frame-2.svg';
 import CognitiveIcon from '../assets/figma/screen16/Frame-1.svg';
 import WarningIcon from '../assets/figma/screen16/Frame.svg';
+import TooYoungWarningIcon from '../assets/figma/screen44/WarningInfo.svg';
 import HomeIcon from '../assets/figma/screen25/Frame.svg';
 import JournalIcon from '../assets/figma/screen25/stylus_note.svg';
 import GoalsIcon from '../assets/figma/screen25/target.svg';
@@ -404,6 +405,10 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     return (computedProgress as any)?.sectionIndex ?? 0;
   }, [progressParams, computedProgress]);
 
+  const isChildTooYoung = useMemo(() => {
+    if (!child?.ageInMonths) return false;
+    return child.ageInMonths <= 36;
+  }, [child?.ageInMonths]);
 
   const LANGUAGES = ['English', 'Gujarati', 'Hindi', 'Kannada'];
 
@@ -827,6 +832,18 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
             </Pressable>
           </View>
 
+          {isChildTooYoung && (
+            <View style={[styles.tooYoungBanner, { marginHorizontal: padding, marginTop: scaleSize(16), padding: scaleSize(16), borderRadius: scaleSize(16), gap: scaleSize(12) }]}>
+              <View style={[styles.tooYoungIcon, { width: scaleSize(36), height: scaleSize(36), borderRadius: scaleSize(18) }]}>
+                <TooYoungWarningIcon width={scaleSize(20)} height={scaleSize(20)} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.tooYoungTitle, { fontSize: scaleSize(14) }]}>{t('childTooYoungTitle')}</Text>
+                <Text style={[styles.tooYoungBody, { fontSize: scaleSize(12), marginTop: scaleSize(4) }]}>{t('childTooYoungBody')}</Text>
+              </View>
+            </View>
+          )}
+
           {latestCompletedSession ? (
             <View style={{ paddingHorizontal: padding, gap: scaleSize(16), marginTop: scaleSize(16) }}>
               {continueProgress && (
@@ -836,6 +853,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                   onStartNew={handleStartNew}
                   progress={continueProgress}
                   childName={child?.name || t('yourChild')}
+                  disabled={isChildTooYoung}
                 />
               )}
 
@@ -852,10 +870,10 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                     </Text>
                   </Text>
                   <Pressable
-                    onPress={handleStartNew}
+                    onPress={isChildTooYoung ? undefined : handleStartNew}
                     style={({ pressed }) => [
                       styles.rescreenCta,
-                      { borderRadius: scaleSize(24), height: scaleSize(46), opacity: pressed ? 0.88 : 1 },
+                      { borderRadius: scaleSize(24), height: scaleSize(46), opacity: isChildTooYoung ? 0.4 : pressed ? 0.88 : 1, backgroundColor: isChildTooYoung ? '#B6B8BD' : '#535BD8' },
                     ]}
                   >
                     <Text style={[styles.rescreenCtaText, { fontSize: scaleSize(15) }]}>{t('takeRescreen')}</Text>
@@ -1140,6 +1158,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                   onStartNew={handleStartNew}
                   progress={continueProgress}
                   childName={child?.name || t('yourChild')}
+                  disabled={isChildTooYoung}
                 />
               </View>
               {renderOnboarding()}
@@ -1153,6 +1172,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                 progress={continueProgress}
                 childName={child?.name || t('yourChild')}
                 style={{ marginHorizontal: padding }}
+                disabled={isChildTooYoung}
               />
 
               {renderOnboarding()}
@@ -1160,7 +1180,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
           )}
         </ScrollView>
 
-        {!continueProgress && !latestCompletedSession && showBottomStartCta && (
+        {!isChildTooYoung && !continueProgress && !latestCompletedSession && showBottomStartCta && (
           <View style={[styles.initialCtaFooter, { paddingHorizontal: padding, paddingBottom: scaleSize(16) }]}>
             <Pressable
               onPress={handleStartNew}
@@ -1175,7 +1195,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
         )}
 
         {/* FAB: always visible when a session is in progress; also visible post-screening as "New Screening" */}
-        {(continueProgress || latestCompletedSession) && (
+        {!isChildTooYoung && (continueProgress || latestCompletedSession) && (
           <Pressable
             onPress={() => continueProgress ? setPlusMenuVisible(true) : handleStartNew()}
             style={({ pressed }) => [
@@ -1377,6 +1397,28 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  tooYoungBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FDF2F2',
+    borderWidth: 1,
+    borderColor: '#FAD4D4',
+  },
+  tooYoungIcon: {
+    backgroundColor: '#FCE8E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tooYoungTitle: {
+    fontFamily: 'Inter_700Bold',
+    color: '#B3261E',
+    lineHeight: 18,
+  },
+  tooYoungBody: {
+    fontFamily: 'Inter_400Regular',
+    color: '#7A2E2E',
+    lineHeight: 16,
   },
   sectionTitle: {
     fontFamily: 'Inter_800ExtraBold',
