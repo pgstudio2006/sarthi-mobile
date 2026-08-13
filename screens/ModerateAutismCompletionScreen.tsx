@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
 import { useScreening } from '../context/ScreeningContext';
+import { getResultColors, getDomainRingColor } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import LogoIcon from '../assets/logo.svg';
 import CloseIcon from '../assets/figma/screen27/Frame-11.svg';
@@ -78,8 +79,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
     : 'mildResultDescription';
 
   // Moderate Autism colours — orange palette
-  const severityColor = '#EA580C';
-  const severityBg    = '#FFEDD5';
+  const resultColors = useMemo(() => getResultColors(result), [result]);
 
   const isDomainOnTrack = (key: string) => {
     if (domainBreakdown) {
@@ -126,7 +126,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
     const breakdown = domainBreakdown?.find((item: any) => item.key === domain.key);
     return {
       ...domain,
-      ringColor: domain.ringColor,
+      ringColor: getDomainRingColor(breakdown?.status, domain.ringColor),
     };
   });
 
@@ -196,15 +196,15 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
                 {score} / {total} <Text style={{ color: '#6B7180' }}>*</Text>
               </Text>
             </View>
-            <View style={[styles.resultBadge, { backgroundColor: severityBg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
-              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color={severityColor} />
-              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: severityColor }]}>{t(resultLabelKey)}</Text>
+            <View style={[styles.resultBadge, { backgroundColor: resultColors.bg, borderColor: resultColors.border, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
+              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color={resultColors.fill} />
+              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
 
           {/* Progress bar */}
           <View style={[styles.progressTrack, { height: scaleSize(8), borderRadius: scaleSize(4), marginTop: scaleSize(8) }]}>
-            <View style={{ width: `${progressFill * 100}%`, height: scaleSize(8), borderRadius: scaleSize(4), backgroundColor: severityColor }} />
+            <View style={{ width: `${progressFill * 100}%`, height: scaleSize(8), borderRadius: scaleSize(4), backgroundColor: resultColors.fill }} />
           </View>
 
           <Text style={[styles.disclaimer, { fontSize: scaleSize(12), marginTop: scaleSize(10) }]}>
@@ -258,18 +258,18 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
         </View>
 
         {/* Result card */}
-        <View style={[styles.resultCard, { padding: scaleSize(16), borderRadius: scaleSize(20), backgroundColor: severityBg }]}>
+        <View style={[styles.resultCard, { padding: scaleSize(16), borderRadius: scaleSize(20), backgroundColor: resultColors.bg }]}>
           <View style={styles.resultCardHeader}>
-            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: severityColor }]}>
+            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: resultColors.fill }]}>
               <ResultFlagIcon width={scaleSize(28)} height={scaleSize(28)} color="#FFF" />
             </View>
             <View style={styles.resultCardTitles}>
-              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: severityColor }]}>{t('screeningResult')}</Text>
-              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18), color: severityColor }]}>{t(resultLabelKey)}</Text>
+              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
+              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.resultCardScore, { fontSize: scaleSize(12) }]}>{score} / {total}</Text>
             </View>
           </View>
-          <View style={[styles.resultDivider, { height: scaleSize(1), marginVertical: scaleSize(12), backgroundColor: `${severityColor}40` }]} />
+          <View style={[styles.resultDivider, { height: scaleSize(1), marginVertical: scaleSize(12), backgroundColor: `${resultColors.border}40` }]} />
           <Text style={[styles.resultDescription, { fontSize: scaleSize(12) }]}>
             {t(resultDescKey, { name: childName })}
           </Text>

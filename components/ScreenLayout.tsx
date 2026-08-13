@@ -31,6 +31,8 @@ export default function ScreenLayout({
 
   const content = scrollable ? (
     <ScrollView
+      overScrollMode="never"
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={[
         styles.scrollContent,
         { paddingHorizontal: padding, paddingBottom: scaleSize(bottomPadding) },

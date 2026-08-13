@@ -15,7 +15,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF, getResultColors, buildDomainTopInsights } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
 import { useReportFAQs } from '../utils/useReportFAQs';
 import { toIsaaLabel } from '../utils/domainQuestions';
 import Svg, { Line, Circle, Path, Rect, Text as SvgText, G } from 'react-native-svg';
@@ -49,7 +49,7 @@ const DOMAINS_OVERVIEW = [
 
 const INSIGHTS = [
   {
-    title: 'Behavioural Patterns',
+    title: 'Behaviour Patterns',
     heading: 'Repetitive behaviours are in control',
     status: 'Doing well',
     statusColor: '#1A7340',
@@ -137,7 +137,7 @@ const DEVELOPMENT_DOMAINS = [
   },
   {
     key: 'Behavior',
-    label: 'Behavioural',
+    label: 'Behaviour',
     status: 'Doing great',
     statusColor: '#1A7340',
     statusBg: '#E8F7F0',
@@ -254,8 +254,8 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
   const childId = screening?.childId ?? route?.params?.childId ?? '';
   const progress = Math.min(1, Math.max(0, Number(score || 0) / Number(total || 1)));
 
-  const prevScoreVal = previousScore?.totalScore != null ? Number(previousScore.totalScore) : undefined;
-  const currentScoreVal = Number(score);
+  const prevScoreVal = previousScore?.totalScore != null ? Math.min(200, Number(previousScore.totalScore)) : undefined;
+  const currentScoreVal = Math.min(200, Number(score));
   const hasHistory = isRepeat && prevScoreVal !== undefined;
 
   let trendStatus = 'No Change';
@@ -266,7 +266,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
 
   if (hasHistory) {
     const diff = currentScoreVal - prevScoreVal;
-    percentChange = Math.round((Math.abs(diff) / prevScoreVal) * 100);
+    percentChange = Math.round((Math.abs(diff) / Math.max(1, prevScoreVal)) * 100);
     if (diff < 0) {
       trendStatus = 'Improved';
       trendStatusColor = '#1A7340';
@@ -358,7 +358,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
     if (domainBreakdown) {
       const bd = domainBreakdown.find((b: any) => b.key === d.key);
       if (bd) {
-        return { ...d, progress: bd.progress };
+        return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor) };
       }
     }
     return d;
@@ -375,8 +375,9 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
       if (bd) {
         scoreStr = `${bd.score ?? 0}/${bd.maxScore ?? 45}`;
         statusStr = bd.status ?? d.status;
-        statusColorStr = bd.statusColor ?? d.statusColor;
-        statusBgStr = bd.statusBg ?? d.statusBg;
+        const statusColors = getStatusColors(statusStr, { text: d.statusColor, bg: d.statusBg });
+        statusColorStr = statusColors.text;
+        statusBgStr = statusColors.bg;
       }
     }
 
@@ -464,7 +465,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingHorizontal: padding, paddingVertical: scaleSize(10) }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={scaleSize(10)}>
+        <Pressable onPress={() => navigation.navigate('Home')} hitSlop={scaleSize(10)}>
           <BackArrow width={scaleSize(12)} height={scaleSize(21)} />
         </Pressable>
         <Text style={[styles.headerTitle, { fontSize: scaleSize(16) }]}>{t('screeningReport')}</Text>
@@ -503,7 +504,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
           </View>
 
           <View style={[styles.progressTrack, { height: scaleSize(6), borderRadius: scaleSize(3), marginTop: scaleSize(10) }]}>
-            <View style={{ width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: '#1A7340' }} />
+            <View style={{ width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: resultColors.fill }} />
           </View>
 
           <View style={[styles.domainGrid, { marginTop: scaleSize(16), gap: scaleSize(12) }]}>
@@ -591,11 +592,13 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
                 const chartW = width - scaleSize(64);
                 const x0 = scaleSize(40);
                 const x1 = chartW - scaleSize(40);
-                const minScore = Math.max(0, Math.min(prevScoreVal ?? 0, currentScoreVal) - 20);
-                const maxScore = Math.max(prevScoreVal ?? currentScoreVal, currentScoreVal) + 20;
+                const rawPrev = prevScoreVal ?? currentScoreVal;
+                const rawCurr = currentScoreVal;
+                const minScore = Math.max(0, Math.min(rawPrev, rawCurr) - 20);
+                const maxScore = Math.min(200, Math.max(rawPrev, rawCurr) + 20);
                 const yFor = (val: number) => scaleSize(120) - ((val - minScore) / (maxScore - minScore)) * scaleSize(90);
-                const y0 = yFor(prevScoreVal ?? 0);
-                const y1 = yFor(currentScoreVal);
+                const y0 = yFor(rawPrev);
+                const y1 = yFor(rawCurr);
 
                 const renderMarker = (bx: number, by: number, title: string, scoreVal: number, badgeColor: string) => {
                   const minBadgeW = scaleSize(48);
@@ -676,8 +679,8 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
                     <Circle cx={x1} cy={y1} r={4} fill={isImproved ? '#1A7340' : '#E25648'} />
                     <SvgText x={x0} y={scaleSize(140)} fill='#9E9EA0' fontSize={scaleSize(10)} textAnchor='middle'>{prevDateStr.split(' ').slice(0, 2).join(' ')}</SvgText>
                     <SvgText x={x1} y={scaleSize(140)} fill={isImproved ? '#1A7340' : '#E25648'} fontSize={scaleSize(10)} fontFamily='Inter_700Bold' textAnchor='middle'>{date.split(' ').slice(0, 2).join(' ')}</SvgText>
-                    {renderMarker(x0, y0, t('test1'), prevScoreVal ?? 0, '#535BD8')}
-                    {renderMarker(x1, y1, t('test2'), currentScoreVal, isImproved ? '#1A7340' : '#E25648')}
+                    {renderMarker(x0, y0, t('previousScoreLabel'), rawPrev, '#535BD8')}
+                    {renderMarker(x1, y1, t('currentScoreLabel'), rawCurr, isImproved ? '#1A7340' : '#E25648')}
                   </G>
                 );
               })()}

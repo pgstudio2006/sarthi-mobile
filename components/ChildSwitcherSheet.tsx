@@ -62,7 +62,7 @@ export default function ChildSwitcherSheet({
       onRequestClose={onClose}
     >
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { maxHeight: '90%' }]}>
         <View style={[styles.handle, { width: scaleSize(40), height: scaleSize(4), borderRadius: scaleSize(999) }]} />
         <View style={styles.headerRow}>
           <Text style={[styles.title, { fontSize: scaleSize(18) }]}>{t('addChildren')}</Text>
@@ -85,7 +85,7 @@ export default function ChildSwitcherSheet({
         </View>
 
         <ScrollView
-          style={{ flex: 1 }}
+          style={styles.childrenScroll}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: scaleSize(24) }}
         >
@@ -163,6 +163,10 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 32,
     maxHeight: '78%',
+  },
+  childrenScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   handle: {
     backgroundColor: '#E2E4E8',

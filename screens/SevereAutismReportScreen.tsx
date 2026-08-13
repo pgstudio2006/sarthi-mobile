@@ -14,7 +14,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF, getResultColors, buildDomainTopInsights } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
 import CalendarIcon from '../assets/figma/screen28/calendar_month.svg';
@@ -132,7 +132,7 @@ const DEVELOPMENT_DOMAINS = [
   },
   {
     key: 'Behavior',
-    label: 'Behavioural',
+    label: 'Behaviour',
     status: 'Needs support',
     statusColor: '#B9382E',
     statusBg: '#FDF0EB',
@@ -331,7 +331,7 @@ export default function SevereAutismReportScreen({ navigation, route }: any) {
     if (domainBreakdown) {
       const bd = domainBreakdown.find((b: any) => b.key === d.key);
       if (bd) {
-        return { ...d, progress: bd.progress };
+        return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor) };
       }
     }
     return d;
@@ -348,8 +348,9 @@ export default function SevereAutismReportScreen({ navigation, route }: any) {
       if (bd) {
         scoreStr = `${bd.score ?? 0}/${bd.maxScore ?? 45}`;
         statusStr = bd.status ?? d.status;
-        statusColorStr = bd.statusColor ?? d.statusColor;
-        statusBgStr = bd.statusBg ?? d.statusBg;
+        const statusColors = getStatusColors(statusStr, { text: d.statusColor, bg: d.statusBg });
+        statusColorStr = statusColors.text;
+        statusBgStr = statusColors.bg;
       }
     }
 
@@ -437,7 +438,7 @@ export default function SevereAutismReportScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingHorizontal: padding, paddingVertical: scaleSize(12) }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={scaleSize(10)}>
+        <Pressable onPress={() => navigation.navigate('Home')} hitSlop={scaleSize(10)}>
           <BackArrow width={scaleSize(12)} height={scaleSize(21)} />
         </Pressable>
         <Text style={[styles.headerTitle, { fontSize: scaleSize(16) }]}>{t('screeningReport')}</Text>

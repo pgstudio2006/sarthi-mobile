@@ -14,7 +14,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF, buildDomainTopInsights } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
 import CalendarIcon from '../assets/figma/screen28/calendar_month.svg';
@@ -48,7 +48,7 @@ const DOMAINS_OVERVIEW = [
 
 const INSIGHTS = [
   {
-    title: 'Behavioural Patterns',
+    title: 'Behaviour Patterns',
     heading: 'Repetitive behaviours are in control',
     status: 'Doing well',
     statusColor: '#1A7340',
@@ -132,7 +132,7 @@ const DEVELOPMENT_DOMAINS_STATIC = [
   },
   {
     key: 'Behavior',
-    label: 'Behavioural',
+    label: 'Behaviour',
     status: 'Needs support',
     statusColor: '#BB853E',
     statusBg: '#FDF8E8',
@@ -289,8 +289,7 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
   };
 
   // Moderate Autism colours
-  const severityColor = '#E25648';
-  const severityBg    = '#FDF0EB';
+  const resultColors = useMemo(() => getResultColors(result), [result]);
 
   // Dynamic answers source: route params or context
   const contextAnswers = screening?.domainAnswers || {};
@@ -324,7 +323,7 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
     DOMAINS_OVERVIEW.map((d) => {
       if (domainBreakdown) {
         const bd = domainBreakdown.find((b: any) => b.key === d.key);
-        if (bd) return { ...d, progress: bd.progress };
+        if (bd) return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor) };
       }
       return { ...d, progress: getDomainProgress(d.key) };
     }),
@@ -343,8 +342,9 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
         if (bd) {
           scoreStr       = `${bd.score ?? 0}/${bd.maxScore ?? 45}`;
           statusStr      = bd.status ?? d.status;
-          statusColorStr = bd.statusColor ?? d.statusColor;
-          statusBgStr    = bd.statusBg ?? d.statusBg;
+          const statusColors = getStatusColors(statusStr, { text: d.statusColor, bg: d.statusBg });
+          statusColorStr = statusColors.text;
+          statusBgStr = statusColors.bg;
         }
       }
 
@@ -430,7 +430,7 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={[styles.header, { paddingHorizontal: padding, paddingVertical: scaleSize(12) }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={scaleSize(10)}>
+        <Pressable onPress={() => navigation.navigate('Home')} hitSlop={scaleSize(10)}>
           <BackArrow width={scaleSize(12)} height={scaleSize(21)} />
         </Pressable>
         <Text style={[styles.headerTitle, { fontSize: scaleSize(16) }]}>{t('screeningReport')}</Text>
@@ -463,16 +463,16 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
                 <Text style={[styles.scoreValue, { fontSize: scaleSize(20) }]}>{score} / {total}</Text>
                 <Text style={[styles.scoreAsterisk, { fontSize: scaleSize(14) }]}> *</Text>
               </View>
-              <View style={[styles.resultBadge, { backgroundColor: severityBg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), marginTop: scaleSize(6) }]}>
-                <ResultFlagIcon width={scaleSize(14)} height={scaleSize(14)} color={severityColor} />
-                <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: severityColor, marginLeft: scaleSize(4) }]}>{t(resultLabelKey)}</Text>
+              <View style={[styles.resultBadge, { backgroundColor: resultColors.bg, borderColor: resultColors.border, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), marginTop: scaleSize(6) }]}>
+                <ResultFlagIcon width={scaleSize(14)} height={scaleSize(14)} color={resultColors.fill} />
+                <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text, marginLeft: scaleSize(4) }]}>{t(resultLabelKey)}</Text>
               </View>
             </View>
           </View>
 
           {/* Progress track */}
           <View style={[styles.progressTrack, { height: scaleSize(8), borderRadius: scaleSize(4), marginTop: scaleSize(12) }]}>
-            <View style={{ width: `${progressFill * 100}%`, height: scaleSize(8), borderRadius: scaleSize(4), backgroundColor: severityColor }} />
+            <View style={{ width: `${progressFill * 100}%`, height: scaleSize(8), borderRadius: scaleSize(4), backgroundColor: resultColors.fill }} />
           </View>
 
           <Text style={[styles.disclaimer, { fontSize: scaleSize(11), marginTop: scaleSize(12) }]}>
@@ -526,18 +526,18 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
         </View>
 
         {/* Result summary card */}
-        <View style={[styles.summaryCard, { padding: scaleSize(16), borderRadius: scaleSize(20), backgroundColor: severityBg }]}>
+        <View style={[styles.summaryCard, { padding: scaleSize(16), borderRadius: scaleSize(20), backgroundColor: resultColors.bg }]}>
           <View style={styles.summaryHeader}>
-            <View style={[styles.summaryIconBox, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(12), backgroundColor: severityColor, justifyContent: 'center', alignItems: 'center' }]}>
+            <View style={[styles.summaryIconBox, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(12), backgroundColor: resultColors.fill, justifyContent: 'center', alignItems: 'center' }]}>
               <ResultFlagIcon width={scaleSize(24)} height={scaleSize(24)} color="#FFF" />
             </View>
             <View style={{ marginLeft: scaleSize(12), flex: 1 }}>
-              <Text style={[styles.summaryEyebrow, { fontSize: scaleSize(10), color: severityColor }]}>{t('screeningResult')}</Text>
-              <Text style={[styles.summaryTitle, { fontSize: scaleSize(18), color: severityColor }]}>{t(resultLabelKey)}</Text>
+              <Text style={[styles.summaryEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
+              <Text style={[styles.summaryTitle, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.summaryScore, { fontSize: scaleSize(12), marginTop: scaleSize(2) }]}>{score} / {total}</Text>
             </View>
           </View>
-          <View style={[styles.summaryDivider, { marginVertical: scaleSize(12), backgroundColor: `${severityColor}30` }]} />
+          <View style={[styles.summaryDivider, { marginVertical: scaleSize(12), backgroundColor: `${resultColors.border}40` }]} />
           <Text style={[styles.summaryBody, { fontSize: scaleSize(12) }]}>
             {t(resultDescKey, { name: childName })}
           </Text>

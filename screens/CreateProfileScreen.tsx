@@ -71,11 +71,20 @@ export default function CreateProfileScreen({
   const [gender, setGender] = useState<string | null>(initialGender || null);
   const [birthContext, setBirthContext] = useState<string | null>(initialBirthContext || null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const dobDisplay = formatISODateDisplay(dob, code);
   const ageLabel = calculateAgeLabel(dob, code);
+  const fieldErrors = {
+    childName: childName.trim() ? '' : t('requiredField'),
+    dob: dob ? '' : t('requiredField'),
+    gender: gender ? '' : t('requiredField'),
+    birthContext: birthContext ? '' : t('requiredField'),
+  };
+  const markTouched = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
+  const showFieldError = (field: keyof typeof fieldErrors) => touched[field] && fieldErrors[field];
 
-  const isValid = childName.length > 0 && dob.length > 0 && gender !== null && birthContext !== null;
+  const isValid = Object.values(fieldErrors).every((value) => !value);
 
   const handleContinue = async () => {
     if (!isValid || submitting) return;
@@ -132,14 +141,16 @@ export default function CreateProfileScreen({
       <View style={{ marginTop: 24 * scale, gap: 24 * scale }}>
         <View style={{ gap: 12 * scale }}>
           <Text style={[styles.fieldLabel, { fontSize: 12 * scale }]}>{t('childFullName')}</Text>
-          <View style={[styles.inputShell, { borderRadius: 16 * scale, paddingHorizontal: 16 * scale, paddingVertical: 12 * scale }]}>
+          <View style={[styles.inputShell, showFieldError('childName') && styles.inputShellError, { borderRadius: 16 * scale, paddingHorizontal: 16 * scale, paddingVertical: 12 * scale }]}>
             <TextInput
               value={childName}
               onChangeText={(txt) => { setChildName(txt); setError(''); }}
+              onBlur={() => markTouched('childName')}
               style={[styles.inputText, { fontSize: 16 * scale }]}
               selectionColor={colors.primaryBlue}
             />
           </View>
+          {showFieldError('childName') ? <Text style={[styles.fieldErrorText, { fontSize: 12 * scale }]}>{fieldErrors.childName}</Text> : null}
         </View>
 
         <View style={{ gap: 12 * scale }}>
@@ -165,12 +176,14 @@ export default function CreateProfileScreen({
 
         <View style={{ gap: 12 * scale }}>
           <Text style={[styles.fieldLabel, { fontSize: 12 * scale }]}>{t('gender')}</Text>
-          <ChoiceGrid options={GENDERS} selected={gender} onSelect={(sel) => { setGender(sel); setError(''); }} columns={3} getLabel={(g) => t(g === 'Male' ? 'male' : g === 'Female' ? 'female' : 'preferNotToSay')} />
+          <ChoiceGrid options={GENDERS} selected={gender} onSelect={(sel) => { markTouched('gender'); setGender(sel); setError(''); }} columns={3} getLabel={(g) => t(g === 'Male' ? 'male' : g === 'Female' ? 'female' : 'preferNotToSay')} />
+          {showFieldError('gender') ? <Text style={[styles.fieldErrorText, { fontSize: 12 * scale }]}>{fieldErrors.gender}</Text> : null}
         </View>
 
         <View style={{ gap: 12 * scale }}>
           <Text style={[styles.fieldLabel, { fontSize: 12 * scale }]}>{t('birthContext')}</Text>
-          <ChoiceGrid options={BIRTH_CONTEXT} selected={birthContext} onSelect={(sel) => { setBirthContext(sel); setError(''); }} columns={2} getLabel={(b) => t(b === 'Normal Birth' ? 'normalBirth' : 'prematureBirth')} />
+          <ChoiceGrid options={BIRTH_CONTEXT} selected={birthContext} onSelect={(sel) => { markTouched('birthContext'); setBirthContext(sel); setError(''); }} columns={2} getLabel={(b) => t(b === 'Normal Birth' ? 'normalBirth' : 'prematureBirth')} />
+          {showFieldError('birthContext') ? <Text style={[styles.fieldErrorText, { fontSize: 12 * scale }]}>{fieldErrors.birthContext}</Text> : null}
         </View>
       </View>
 
@@ -244,6 +257,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  inputShellError: {
+    borderColor: colors.errorRed,
+  },
+  fieldErrorText: {
+    fontFamily: 'Inter_500Medium',
+    color: colors.errorRed,
+    marginTop: -6,
   },
   dateInputShell: {
     justifyContent: 'space-between',

@@ -2,7 +2,7 @@ import { AppLanguage } from '../i18n/translations';
 
 export type StaticFaqKey = string;
 
-export const STATIC_FAQ_I18N: Record<AppLanguage, Record<StaticFaqKey, { title: string; body: string }>> = {
+export const STATIC_FAQ_I18N: Record<AppLanguage, Record<StaticFaqKey, { title: string; body: string }>> & { Tamil?: Record<StaticFaqKey, { title: string; body: string }> } = {
   English: {},
   Hindi: {},
   Gujarati: {},

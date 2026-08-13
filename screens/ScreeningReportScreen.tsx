@@ -18,7 +18,7 @@ import Svg, { Line, Circle, Path, Rect, Text as SvgText, G } from 'react-native-
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF, getResultColors, buildDomainTopInsights } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import GradientBorderCard from '../components/GradientBorderCard';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
@@ -110,7 +110,7 @@ const DOMAINS_DETAIL = [
   },
   {
     key: 'Behavior',
-    label: 'Behavioural',
+    label: 'Behaviour',
     Icon: BehaviorIcon,
     color: '#D66A8E',
     score: '28/45',
@@ -169,7 +169,7 @@ const DOMAINS_DETAIL = [
 
 const INSIGHTS = [
   {
-    title: 'Behavioural Patterns',
+    title: 'Behaviour Patterns',
     heading: 'Repetitive behaviours\nare in control',
     status: 'Doing well',
     statusColor: '#1A7340',
@@ -345,8 +345,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
   const domainAnswers = routeAnswers || contextAnswers;
 
   // Trend logic
-  const prevScoreVal = previousScore?.totalScore != null ? Number(previousScore.totalScore) : undefined;
-  const currentScoreVal = Number(score);
+  const prevScoreVal = previousScore?.totalScore != null ? Math.min(200, Number(previousScore.totalScore)) : undefined;
+  const currentScoreVal = Math.min(200, Number(score));
   const hasHistory = isRepeat && prevScoreVal !== undefined;
 
   let trendStatus = 'No Change';
@@ -357,7 +357,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
 
   if (hasHistory) {
     const diff = currentScoreVal - prevScoreVal;
-    percentChange = Math.round((Math.abs(diff) / prevScoreVal) * 100);
+    percentChange = Math.round((Math.abs(diff) / Math.max(1, prevScoreVal)) * 100);
     if (diff < 0) {
       trendStatus = 'Improved';
       trendStatusColor = '#1A7340';
@@ -411,7 +411,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
     if (domainBreakdown) {
       const bd = domainBreakdown.find((b: any) => b.key === d.key);
       if (bd) {
-        return { ...d, progress: bd.progress };
+        return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor) };
       }
     }
     return d;
@@ -428,8 +428,9 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
       if (bd) {
         scoreStr = `${bd.score ?? 0}/${bd.maxScore ?? 45}`;
         statusStr = bd.status ?? d.status;
-        statusColorStr = bd.statusColor ?? d.statusColor;
-        statusBgStr = bd.statusBg ?? d.statusBg;
+        const statusColors = getStatusColors(statusStr, { text: d.statusColor, bg: d.statusBg });
+        statusColorStr = statusColors.text;
+        statusBgStr = statusColors.bg;
       }
     }
 
@@ -530,7 +531,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingHorizontal: padding, paddingVertical: scaleSize(10) }]}>
         <Pressable
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate('Home')}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.8 : 1 }]}
         >
           <BackArrow width={scaleSize(12)} height={scaleSize(21)} />
@@ -583,7 +584,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
           </View>
 
           <View style={[styles.progressTrack, { height: scaleSize(6), borderRadius: scaleSize(3), marginTop: scaleSize(8) }]}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3) }]} />
+            <View style={[styles.progressFill, { width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: resultColors.fill }]} />
           </View>
 
           <Text style={[styles.disclaimer, { fontSize: scaleSize(12), marginTop: scaleSize(8) }]}>
@@ -639,14 +640,13 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        <View style={[styles.resultCard, { padding: scaleSize(14), borderRadius: scaleSize(20) }]}>
-          <View style={styles.resultCardHeader}>
+        <View style={[styles.resultCard, { padding: scaleSize(14), borderRadius: scaleSize(20), backgroundColor: resultColors.bg }]}>          <View style={styles.resultCardHeader}>
             <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: resultColors.bg }]}>
               <FlagIcon width={scaleSize(28)} height={scaleSize(28)} color={resultColors.fill} />
             </View>
             <View style={styles.resultCardTitles}>
-              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10) }]}>{t('screeningResult')}</Text>
-              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18) }]}>{t(resultLabelKey)}</Text>
+              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
+              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.resultCardScore, { fontSize: scaleSize(12) }]}>{score} / {total}</Text>
             </View>
           </View>
@@ -697,8 +697,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                     const rawPrev = prevScoreVal ?? currentScoreVal;
                     const rawCurr = currentScoreVal;
                     const scoreGap = 20;
-                    const minScore = Math.min(rawPrev, rawCurr) - scoreGap;
-                    const maxScore = Math.max(rawPrev, rawCurr) + scoreGap;
+                    const minScore = Math.max(0, Math.min(rawPrev, rawCurr) - scoreGap);
+                    const maxScore = Math.min(200, Math.max(rawPrev, rawCurr) + scoreGap);
                     const scoreRange = Math.max(1, maxScore - minScore);
                     const yFor = (val: number) => plotBottom - ((val - minScore) / scoreRange) * plotH;
                     const y0 = yFor(rawPrev);
@@ -785,8 +785,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                         <Circle cx={x1} cy={y1} r={8} stroke={isImproved ? 'rgba(26, 115, 64, 0.2)' : 'rgba(226, 86, 72, 0.2)'} strokeWidth={3} fill='none' />
                         <SvgText x={x0} y={chartH - scaleSize(20)} fill='#9E9EA0' fontSize={scaleSize(10)} textAnchor='middle'>{prevDateStr.split(' ').slice(0, 2).join(' ')}</SvgText>
                         <SvgText x={x1} y={chartH - scaleSize(20)} fill={isImproved ? '#1A7340' : '#E25648'} fontSize={scaleSize(10)} fontFamily='Inter_700Bold' textAnchor='middle'>{date.split(' ').slice(0, 2).join(' ')}</SvgText>
-                        {renderMarker(x0, y0, t('test1'), prevScoreVal ?? 0, '#535BD8')}
-                        {renderMarker(x1, y1, t('test2'), currentScoreVal, isImproved ? '#1A7340' : '#E25648')}
+                        {renderMarker(x0, y0, t('previousScoreLabel'), rawPrev, '#535BD8')}
+                        {renderMarker(x1, y1, t('currentScoreLabel'), rawCurr, isImproved ? '#1A7340' : '#E25648')}
                       </G>
                     );
                   })()}

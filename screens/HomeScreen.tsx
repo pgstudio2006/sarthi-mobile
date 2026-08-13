@@ -410,7 +410,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     return child.ageInMonths <= 36;
   }, [child?.ageInMonths]);
 
-  const LANGUAGES = ['English', 'Gujarati', 'Hindi', 'Kannada'];
+  const LANGUAGES = ['English', 'Gujarati', 'Hindi', 'Kannada', 'Tamil'];
 
   const domainColumns = useMemo(() => {
     const rows: (typeof DOMAINS[number])[][] = [];
@@ -1245,7 +1245,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                 <Pressable
                   key={lang}
                   onPress={() => {
-                    setLanguage(lang as 'English' | 'Gujarati' | 'Hindi' | 'Kannada');
+                    setLanguage(lang as 'English' | 'Gujarati' | 'Hindi' | 'Kannada' | 'Tamil');
                     setLanguageModalVisible(false);
                   }}
                   style={[

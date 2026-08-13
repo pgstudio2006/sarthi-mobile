@@ -1,4 +1,7 @@
 import { Alert } from 'react-native';
+import { Asset } from 'expo-asset';
+
+const LOGO_ASSET = require('../assets/logo.svg');
 
 const LOGO_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAQAAAGKDAGaAAAFgUlEQVRYw7WXa2wUVRTH/20p7fZBW0p5iAplaUELCqEFlUCMYKwJKMYgaEwIUpQYNCIWRYgvQtTS6AeiKEqIQDBIAEFAEEm1DUVUoIqPVqhCC/IoammhC9vt/vywM7szu7NLLfHMl7n3nP/533vuPefMSHap8wNIoG57pxIYSErZDyCgB8qogTYUeKT+v2C+SlLanqA3v4EBwSdAasAI4CUUcA7wRsiBMbDIjQDQd4M0ogimtkrbMWSgAVzibUIouTIwfc4kJaVIkpT+PTxLiGplkHCo6Wq+uSOydlrYl3jD1xOSAQ5zdzcA1CJJK/ygOEk91kIhAMsQmeMDq9MRg7ojGExIINkrOAm8D4DHSg9QwiQApiDmeQzFWaDE2LUQ4DXjedimsAQaShgbqXj4NM4ISZpmVeTbdt6vGISrWtElfs76Fuig9+9hij7qFjbTs6GecEnxSdKa4DjbK0nFrzWFTI4yE/jVsvDsMaauP0JxX0ARviBgOg0A3GnZaVpO4N3llZRYYZrez8dhC/KRxrBVYSt37TPVgSh6GQN8FFxSQPLOqbsBSP3Wy2gLwJIRQcC91mPIOGyaTaTKARBxbllH7EtqZkJsgCRlvrTbF21JQiS3KN7pkFNH/BMOiJ+nq8vQTTNI8ChZnZabXJs7bxzf9zjAO/8kTLfNxynXwTpze6PlnG8/o16B+fzTfqCRgq1W62nXtYff1X1orjRiqzn2M8TgySlqAFjNuqDxFdIRKpWeag/Vo7zfJWXXei1ep3AaKDYDWypNvhLQnETk1+kWf/hC3iUrdGil0i3lAE8iRM/r1cpm3g0aNzAdgB8sACnvm8Bo0AuSLgLwKMeBQjosTEuCAJu0BSPgjsjo5WS0KyUM4Amqf6aO2cFRPUKU0cLAOhvgsgUAUM4u/PQz9lAGwC5/75eDgFlhAHuxKzNmynGtMwDtvMWOmIBahEjbYAACBWYCzY6A18kx3jI2WXolQJvRKMLqb6g5bbO0AnMPlbwSFdBrpwMA4FkOOwJ6mw08q/J8jChZnhtCR9HdfTo2IP6JyGQrfKbVGZBeETWdB723PwzQ/ZISr1IDchs9IcCtnasbWWMvCC3SNUhm2ophJ2raq9pyjycvjbju1yTje/604IzHllMXmH0256BGRBoPTipaO/jv4ktTPaNaC+rd02I5dqUsdTdUXiaGfOYbdKbPi2bnLkjLO3cszGJx+00fRLoemXlg1qkLVDOOxVyM6v4MM4kLlpQh6cObI22OIcatNh0nJj3X/8S2S3aTFhZwJ9/Z5raTZ71npZKUOWVxhPtDuBD5jZI7c+8DJ8/Giga7GcObzCMxMkFKJWlUYm6ztU0cYbihH7lccbv3cw9z+Tuq+yrG8gptNDGHBEcCSXGDjz7NDG6zWQyYLylhTyDSl1nK7VRYHLfxKmOpjCDcaH5dR5T1obPddekel9f95/BPs/ubwa+wB76acTzPRJ6hOWbYGnkEEb/wqlc96eu2CHAJ1cznLg5Fdf8lBQjxBqv87qbcx2MQJFd5HAjMyrSD0bxN6ABbWUiSQ9f4jQnNA7epjwNBSvWVGATmrX+M+xjjUGbLbHbtLLvU7w/dYf/0OrCV0ZTjjUEQ/WOxzJYh+QiRut5GkP6dz/jBms0kartA0ByWIekbbQQ9DnXYHG2gkIJOE7gc5jK32AgyavwOZ/A504N/AjG/px2entvtxf5Hoh5yByspZMN/JMjZbQ/RwRrf1W5RLZMY3Pkd7Ii8q5N71y9rae/CLbI/PY5qfKyk7ttvy13nj3aBIN6XslwZnW2TcX1KMlre8vk7RZB6QsVd7ccD3dUPXTwVhSCuI+lD80fi2iQhb1H+X5ssBEmn9KD+B7k54yut0XX/HfgvpUkmTvPggOsAAAAASUVORK5CYII=';
 
@@ -240,7 +243,7 @@ function getScreenerRole(screener?: string): string {
   return match ? match[1] : screener;
 }
 
-function buildReportHtml(data: ScreeningReportData): string {
+function buildReportHtml(data: ScreeningReportData, logoSource: string): string {
   const { childName, score, total, date, screener, domainBreakdown, domainAnswers } = data;
   const screenerRole = getScreenerRole(screener);
   const category = getOverallCategory(score);
@@ -352,7 +355,7 @@ function buildReportHtml(data: ScreeningReportData): string {
       </head>
       <body>
         <div style='display:flex;align-items:center;gap:12px;margin-bottom:16px;'>
-          <img src='data:image/png;base64,${LOGO_BASE64}' width='48' height='48' style='border-radius:8px;' />
+          <img src='${escapeHtml(logoSource)}' width='48' height='48' style='border-radius:8px;' />
           <div>
             <span style='font-size:20px;font-weight:700;color:#535BD8;'>Saarathi</span><br/>
             <span style='font-size:11px;color:#6B7180;'>Autism Screening & Care</span>
@@ -419,6 +422,21 @@ export function getResultColors(result?: string) {
   return { text: '#1A7340', bg: '#E6F4EA', border: '#34A853', fill: '#1A7340' };
 }
 
+export function getDomainRingColor(status: string | undefined, defaultColor: string): string {
+  const s = (status ?? '').toLowerCase();
+  if (s.includes('support')) return '#E25648';
+  if (s.includes('progress')) return '#BB853E';
+  return defaultColor;
+}
+
+export function getStatusColors(status?: string, fallback?: { text: string; bg: string }) {
+  const s = (status ?? '').toLowerCase();
+  if (s.includes('support')) return { text: '#E25648', bg: '#FDF0EB' };
+  if (s.includes('progress')) return { text: '#BB853E', bg: '#FDF8E8' };
+  if (s.includes('great') || s.includes('well')) return { text: '#1A7340', bg: '#E8F7F0' };
+  return fallback ?? { text: '#6B7180', bg: '#F4F5F5' };
+}
+
 export type DomainInsightCard = {
   title: string;
   heading: string;
@@ -434,7 +452,7 @@ const DOMAIN_INSIGHT_META: Record<string, { title: string; color: string; Icon: 
   Social: { title: 'Social Interaction', color: '#9651C8', Icon: SocialIcon, supportHeading: 'Social interaction needs support', goodHeading: 'Social interaction is on track' },
   Emotion: { title: 'Emotion Responses', color: '#2BA8A6', Icon: EmotionIcon, supportHeading: 'Emotion responses need support', goodHeading: 'Emotion responses are on track' },
   Speech: { title: 'Speech & Language', color: '#3B8DBD', Icon: SpeechIcon, supportHeading: 'Communication needs support', goodHeading: 'Speech & language is on track' },
-  Behavior: { title: 'Behavioural Patterns', color: '#D66A8E', Icon: BehaviorIcon, supportHeading: 'Repetitive patterns need guidance', goodHeading: 'Daily behaviours are well-balanced' },
+  Behavior: { title: 'Behaviour Patterns', color: '#D66A8E', Icon: BehaviorIcon, supportHeading: 'Repetitive patterns need guidance', goodHeading: 'Daily behaviours are well-balanced' },
   Sensory: { title: 'Sensory Responses', color: '#F4A261', Icon: SensoryIcon, supportHeading: 'Sensory responses need support', goodHeading: 'Sensory responses are on track' },
   Cognitive: { title: 'Cognitive Patterns', color: '#7D6CB7', Icon: CognitiveIcon, supportHeading: 'Attention & focus need support', goodHeading: 'Cognitive skills are on track' },
 };
@@ -453,8 +471,10 @@ export function buildDomainTopInsights(domainBreakdown?: any[], previousScore?: 
     const prevBd = previousScore?.domainBreakdown?.find((b: any) => b.key === key);
     const isImproved = prevBd ? score < Number(prevBd.score || 0) : false;
     const status = bd?.status || (needsSupport ? 'Needs support' : 'Doing well');
-    const statusColor = bd?.statusColor || (needsSupport ? '#D97706' : '#1A7340');
-    const statusBg = bd?.statusBg || (needsSupport ? '#FEF3C7' : '#E8F7F0');
+    const statusDefaults = needsSupport ? { text: '#E25648', bg: '#FDF0EB' } : { text: '#1A7340', bg: '#E8F7F0' };
+    const statusColors = getStatusColors(status, statusDefaults);
+    const statusColor = statusColors.text;
+    const statusBg = statusColors.bg;
     const heading = isImproved ? meta.goodHeading : needsSupport ? meta.supportHeading : meta.goodHeading;
     const activities = (DOMAIN_ACTIVITIES[key] || []).slice(0, 3);
     const bullets = activities.length ? activities : ['Keep supporting development with age-appropriate activities.', 'Praise small wins during daily routines.', 'Monitor progress and repeat screening if needed.'];
@@ -491,8 +511,11 @@ export async function generateScreeningReportPDF(data: ScreeningReportData, acti
   }
 
   try {
+    const logoAsset = Asset.fromModule(LOGO_ASSET);
+    await logoAsset.downloadAsync();
+    const logoSource = logoAsset.localUri || logoAsset.uri;
     const { uri } = await Print.printToFileAsync({
-      html: buildReportHtml(data),
+      html: buildReportHtml(data, logoSource),
     });
 
     let shareUri = uri;

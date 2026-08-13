@@ -27,7 +27,7 @@ import CognitiveIcon from '../assets/figma/screen18/Frame-1.svg';
 
 type Language = 'English' | 'Gujarati' | 'Hindi' | 'Kannada' | 'Tamil';
 
-type LocalizedQuestion = Record<Language, { text: string; tip: string; options: string[] }>;
+type LocalizedQuestion = { [K in Language]?: { text: string; tip: string; options: string[] } } & { English: { text: string; tip: string; options: string[] } };
 
 const DOMAINS = [
   { key: 'Social', label: 'Social', Icon: SocialIcon, color: '#E9D4F7', activeColor: '#9651C8' },
@@ -119,7 +119,7 @@ export default function BehaviorScreeningScreen({ navigation }: { navigation: an
     if (JSON.stringify(next) !== JSON.stringify(answers)) {
       setAnswers(next);
     }
-  }, [screening.domainAnswers]);
+  }, [screening.domainAnswers, answers]);
   const scrollRef = useRef<ScrollView>(null);
   const headerHeightRef = useRef(0);
   const positionsRef = useRef<number[]>([]);
@@ -248,18 +248,18 @@ export default function BehaviorScreeningScreen({ navigation }: { navigation: an
                 Question {qIndex + 1} / {QUESTIONS.length}
               </Text>
               <Text style={[styles.questionText, { fontSize: scaleFont(16), lineHeight: scaleFont(22), marginBottom: scaleSize(12) }]}>
-                {question[language].text}
+                {(question[language] ?? question.English).text}
               </Text>
 
               <View style={[styles.tipBox, { padding: scaleSize(10), borderLeftWidth: scaleSize(4), marginBottom: scaleSize(12) }]}>
                 <Text style={[styles.tipText, { fontSize: scaleFont(13), lineHeight: scaleFont(18) }]}>
                   <Text style={styles.tipLabel}>Tip : </Text>
-                  {question[language].tip}
+                  {(question[language] ?? question.English).tip}
                 </Text>
               </View>
 
               <View style={{ gap: scaleSize(6) }}>
-                {question[language].options.map((option, oIndex) => {
+                {(question[language] ?? question.English).options.map((option, oIndex) => {
                   const selected = answers[qIndex] === oIndex;
                   return (
                     <Pressable

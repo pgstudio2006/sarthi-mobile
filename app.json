@@ -32,7 +32,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["./plugins/withCleartextTraffic.js"],
+    "plugins": [
+      "./plugins/withCleartextTraffic.js",
+      "expo-asset"
+    ],
     "extra": {
       "eas": {
         "projectId": "460d4658-0fef-45dc-830d-cef453b0d52e"

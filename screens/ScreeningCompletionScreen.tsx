@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ScrollView,
   View,
@@ -12,6 +12,7 @@ import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
 import { useScreening } from '../context/ScreeningContext';
+import { getResultColors, getDomainRingColor } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import LogoIcon from '../assets/logo.svg';
 import CloseIcon from '../assets/figma/screen27/Frame-11.svg';
@@ -60,6 +61,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
   const completedCount = route?.params?.completedCount ?? (isRepeat ? 2 : 1);
   const progress = Math.min(1, Math.max(0, score / total));
 
+  const resultColors = useMemo(() => getResultColors(result), [result]);
   const resultLower = result.toLowerCase();
   const resultLabelKey = resultLower.includes('no sign') || resultLower === 'normal'
     ? 'resultNormal'
@@ -122,7 +124,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
       label: meta.label,
       Icon: meta.Icon,
       color: meta.color,
-      ringColor: meta.ringColor,
+      ringColor: getDomainRingColor(breakdown?.status, meta.ringColor),
     };
   });
 
@@ -189,14 +191,14 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
                 {score} / {total} <Text style={{ color: '#6B7180' }}>*</Text>
               </Text>
             </View>
-            <View style={[styles.resultBadge, { borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
-              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color="#BB853E" />
-              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12) }]}>{t(resultLabelKey)}</Text>
+            <View style={[styles.resultBadge, { borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), backgroundColor: resultColors.bg, borderColor: resultColors.border }]}>
+              <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color={resultColors.fill} />
+              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
 
           <View style={[styles.progressTrack, { height: scaleSize(8), borderRadius: scaleSize(4), marginTop: scaleSize(8) }]}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%`, height: scaleSize(8), borderRadius: scaleSize(4) }]} />
+            <View style={[styles.progressFill, { width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: resultColors.fill }]} />
           </View>
 
           <Text style={[styles.disclaimer, { fontSize: scaleSize(12), marginTop: scaleSize(10) }]}>
@@ -252,18 +254,18 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        <View style={[styles.resultCard, { padding: scaleSize(16), borderRadius: scaleSize(20) }]}>
+        <View style={[styles.resultCard, { padding: scaleSize(16), borderRadius: scaleSize(20), backgroundColor: resultColors.bg }]}>
           <View style={styles.resultCardHeader}>
-            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14) }]}>
+            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: resultColors.fill }]}>
               <ResultFlagIcon width={scaleSize(28)} height={scaleSize(28)} color="#FFF" />
             </View>
             <View style={styles.resultCardTitles}>
-              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10) }]}>{t('screeningResult')}</Text>
-              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18) }]}>{t(resultLabelKey)}</Text>
+              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
+              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.resultCardScore, { fontSize: scaleSize(12) }]}>{score} / {total}</Text>
             </View>
           </View>
-          <View style={[styles.resultDivider, { height: scaleSize(1), marginVertical: scaleSize(12) }]} />
+          <View style={[styles.resultDivider, { height: scaleSize(1), marginVertical: scaleSize(12), backgroundColor: resultColors.border }]} />
           <Text style={[styles.resultDescription, { fontSize: scaleSize(12) }]}>
             {t(resultDescKey, { name: childName })}
           </Text>

@@ -68,7 +68,13 @@ export default function OTPVerificationScreen({
           children: [],
         };
     await signIn(token, user);
-    navigation.navigate('CreateCaregiverProfile');
+    if (user.caregiverProfile && user.children.length > 0) {
+      navigation.replace('Home');
+    } else if (user.caregiverProfile) {
+      navigation.replace('CreateProfile');
+    } else {
+      navigation.replace('CreateCaregiverProfile');
+    }
   };
 
   const handleResend = async () => {

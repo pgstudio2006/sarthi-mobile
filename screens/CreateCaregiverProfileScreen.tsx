@@ -113,6 +113,21 @@ export default function CreateCaregiverProfileScreen({
   const [finalValue, setFinalValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const roleConfig = role ? ROLE_CONFIG[role] : undefined;
+  const needsRoleDetails = roleConfig !== undefined && role !== 'Mother' && role !== 'Father';
+
+  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const fieldErrors = {
+    name: name.trim() ? '' : t('requiredField'),
+    email: !email.trim() ? t('requiredField') : !emailIsValid ? t('invalidEmail') : '',
+    city: city.trim() ? '' : t('requiredField'),
+    role: role ? '' : t('requiredField'),
+    secondaryChoice: needsRoleDetails && (roleConfig?.secondaryOptions.length ?? 0) > 0 && !secondaryChoice ? t('requiredField') : '',
+    finalValue: needsRoleDetails && !finalValue.trim() ? t('requiredField') : '',
+  };
+  const markTouched = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
+  const showFieldError = (field: keyof typeof fieldErrors) => touched[field] && fieldErrors[field];
 
   useEffect(() => {
     const query = city.trim();
@@ -146,17 +161,13 @@ export default function CreateCaregiverProfileScreen({
     };
   }, [city, locationSelected]);
 
-  const roleConfig = role ? ROLE_CONFIG[role] : undefined;
-  const needsRoleDetails = roleConfig !== undefined && role !== 'Mother' && role !== 'Father';
-
   const isValid =
-    name.length > 0 &&
-    email.length > 0 &&
-    role !== null &&
-    city.trim().length > 0 &&
-    (!needsRoleDetails ||
-      (roleConfig.secondaryOptions.length === 0 || secondaryChoice !== null) &&
-      finalValue.length > 0);
+    !fieldErrors.name &&
+    !fieldErrors.email &&
+    !fieldErrors.role &&
+    !fieldErrors.city &&
+    !fieldErrors.secondaryChoice &&
+    !fieldErrors.finalValue;
 
   const handleRoleSelect = (selectedRole: string | null) => {
     setRole(selectedRole);
@@ -275,6 +286,7 @@ export default function CreateCaregiverProfileScreen({
           <View
             style={[
               styles.inputShell,
+              showFieldError('name') && styles.inputShellError,
               {
                 borderRadius: scaleSize(16),
                 paddingHorizontal: scaleSize(16),
@@ -285,10 +297,12 @@ export default function CreateCaregiverProfileScreen({
             <TextInput
               value={name}
               onChangeText={(txt) => { setName(txt); setError(''); }}
+              onBlur={() => markTouched('name')}
               style={[styles.inputText, { fontSize: scaleFont(16) }]}
               selectionColor={colors.primaryBlue}
             />
           </View>
+          {showFieldError('name') ? <Text style={styles.fieldErrorText}>{fieldErrors.name}</Text> : null}
         </View>
 
         <View style={styles.field}>
@@ -298,6 +312,7 @@ export default function CreateCaregiverProfileScreen({
           <View
             style={[
               styles.inputShell,
+              showFieldError('email') && styles.inputShellError,
               {
                 borderRadius: scaleSize(16),
                 paddingHorizontal: scaleSize(16),
@@ -308,12 +323,14 @@ export default function CreateCaregiverProfileScreen({
             <TextInput
               value={email}
               onChangeText={(txt) => { setEmail(txt); setError(''); }}
+              onBlur={() => markTouched('email')}
               style={[styles.inputText, { fontSize: scaleFont(16) }]}
               selectionColor={colors.primaryBlue}
               keyboardType="email-address"
               autoCapitalize="none"
             />
           </View>
+          {showFieldError('email') ? <Text style={styles.fieldErrorText}>{fieldErrors.email}</Text> : null}
         </View>
 
         <View style={styles.field}>
@@ -324,6 +341,7 @@ export default function CreateCaregiverProfileScreen({
             style={[
               styles.inputShell,
               styles.cityShell,
+              showFieldError('city') && styles.inputShellError,
               {
                 borderRadius: scaleSize(14),
                 paddingHorizontal: scaleSize(16),
@@ -334,6 +352,7 @@ export default function CreateCaregiverProfileScreen({
             <TextInput
               value={city}
               onChangeText={(txt) => { setCity(txt); setLocationSelected(false); setError(''); }}
+              onBlur={() => markTouched('city')}
               placeholder={t('startTypingCity')}
               placeholderTextColor="#A6A6B8"
               style={[styles.inputText, { fontSize: scaleFont(16) }]}
@@ -341,6 +360,7 @@ export default function CreateCaregiverProfileScreen({
             />
             <LocationOnIcon width={scaleSize(24)} height={scaleSize(24)} />
           </View>
+          {showFieldError('city') ? <Text style={styles.fieldErrorText}>{fieldErrors.city}</Text> : null}
           {(locationLoading || locationSuggestions.length > 0) && !locationSelected ? (
             <View style={styles.locationDropdown}>
               {locationLoading ? <ActivityIndicator color={colors.primaryBlue} /> : null}
@@ -370,10 +390,11 @@ export default function CreateCaregiverProfileScreen({
           <ChoiceGrid
             options={ROLES}
             selected={role}
-            onSelect={handleRoleSelect}
+            onSelect={(selectedRole) => { markTouched('role'); handleRoleSelect(selectedRole); }}
             columns={2}
             getLabel={(r) => t(toCamelKey(r))}
           />
+          {showFieldError('role') ? <Text style={styles.fieldErrorText}>{fieldErrors.role}</Text> : null}
         </View>
 
         {needsRoleDetails ? (
@@ -386,10 +407,11 @@ export default function CreateCaregiverProfileScreen({
                 <ChoiceGrid
                   options={roleConfig.secondaryOptions}
                   selected={secondaryChoice}
-                  onSelect={(sel) => { setSecondaryChoice(sel); setError(''); }}
+                  onSelect={(sel) => { markTouched('secondaryChoice'); setSecondaryChoice(sel); setError(''); }}
                   columns={2}
                   getLabel={(o) => t(toCamelKey(o))}
                 />
+                {showFieldError('secondaryChoice') ? <Text style={styles.fieldErrorText}>{fieldErrors.secondaryChoice}</Text> : null}
               </View>
             ) : null}
 
@@ -402,6 +424,7 @@ export default function CreateCaregiverProfileScreen({
                   styles.inputShell,
                   {
                     borderRadius: scaleSize(16),
+                    ...(showFieldError('finalValue') ? styles.inputShellError : {}),
                     paddingHorizontal: scaleSize(16),
                     paddingVertical: scaleSize(12),
                   },
@@ -410,6 +433,7 @@ export default function CreateCaregiverProfileScreen({
                 <TextInput
                   value={finalValue}
                   onChangeText={(txt) => { setFinalValue(txt); setError(''); }}
+                  onBlur={() => markTouched('finalValue')}
                   placeholder={roleConfig.finalPlaceholder}
                   placeholderTextColor="#A6A6B8"
                   style={[styles.inputText, { fontSize: scaleFont(16) }]}
@@ -417,6 +441,7 @@ export default function CreateCaregiverProfileScreen({
                   autoCapitalize="words"
                 />
               </View>
+              {showFieldError('finalValue') ? <Text style={styles.fieldErrorText}>{fieldErrors.finalValue}</Text> : null}
             </View>
           </>
         ) : null}
@@ -485,6 +510,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  inputShellError: {
+    borderColor: colors.errorRed,
+  },
+  fieldErrorText: {
+    fontFamily: 'Inter_500Medium',
+    color: colors.errorRed,
+    fontSize: 12,
+    marginTop: -6,
   },
   cityShell: {
     justifyContent: 'space-between',
