@@ -38,10 +38,21 @@ export default function BeginScreeningScreen({ navigation }: { navigation: any }
   const childName = activeChild?.name || user?.children?.[0]?.name || t('yourChild');
 
   const childId = activeChild?.id || user?.children?.[0]?.id;
+  const [screeningConsent, setScreeningConsent] = React.useState(false);
 
   useEffect(() => {
     screening.reset();
   }, [screening.reset]);
+
+  const startScreening = async () => {
+    if (!childId) return;
+    const sessionId = await screening.start(childId);
+    if (sessionId) {
+      navigation.navigate('SocialScreening');
+    } else {
+      Alert.alert(t('couldNotStartScreening'), screening.error || t('checkConnectionTryAgain'));
+    }
+  };
 
   const handleStart = async () => {
     if (activeChild?.ageInMonths !== undefined && activeChild.ageInMonths < 36) {
@@ -55,12 +66,8 @@ export default function BeginScreeningScreen({ navigation }: { navigation: any }
       Alert.alert(t('noChildProfile'), t('createChildProfileFirst'));
       return;
     }
-    const sessionId = await screening.start(childId);
-    if (sessionId) {
-      navigation.navigate('SocialScreening');
-    } else {
-      Alert.alert(t('couldNotStartScreening'), screening.error || t('checkConnectionTryAgain'));
-    }
+    if (!screeningConsent) return;
+    await startScreening();
   };
 
   return (
@@ -110,7 +117,18 @@ export default function BeginScreeningScreen({ navigation }: { navigation: any }
               {screening.error ? (
                 <Text style={[styles.errorText, { fontSize: 12 * scale, marginBottom: 12 * scale }]}>{screening.error}</Text>
               ) : null}
-              <PrimaryButton label={t('startScreening')} onPress={handleStart} disabled={screening.loading} />
+              <Pressable
+                onPress={() => setScreeningConsent((value) => !value)}
+                style={styles.consentRow}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: screeningConsent }}
+              >
+                <View style={[styles.checkbox, screeningConsent && styles.checkboxChecked]}>
+                  {screeningConsent ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                </View>
+                <Text style={styles.consentText}>{t('consentCheckboxChild')}</Text>
+              </Pressable>
+              <PrimaryButton label={t('startScreening')} onPress={handleStart} disabled={!screeningConsent || screening.loading} />
             </View>
           </ScrollView>
         </View>
@@ -194,5 +212,36 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     color: '#D12B2B',
     textAlign: 'center',
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.primaryBlue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primaryBlue,
+  },
+  checkboxMark: {
+    color: colors.white,
+    fontFamily: 'Inter_700Bold',
+    fontSize: 15,
+  },
+  consentText: {
+    flex: 1,
+    color: colors.mainBlack,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    lineHeight: 18,
   },
 });
