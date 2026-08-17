@@ -21,6 +21,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { getScreeningHistory, getAiFaqs, ChildProfile, AiFaq } from '../api/client';
 import { getDynamicFAQs } from '../utils/qaLogic';
 import { getReportFAQs, ReportFAQInput } from '../utils/reportFaqLogic';
+import { getDomainRingColor, getStatusColors } from '../utils/reportPdf';
 import { DOMAIN_QUESTIONS, toIsaaLabel } from '../utils/domainQuestions';
 import PrivacyInfoCard from '../components/PrivacyInfoCard';
 import HeroCard from '../components/HeroCard';
@@ -74,7 +75,7 @@ const DOMAINS: { name: string; Icon: React.ComponentType<{ width?: number; heigh
   { name: 'Speech', Icon: SpeechIcon, color: '#1EA7F2' },
   { name: 'Behaviour', Icon: BehaviourIcon, color: '#F04D9B' },
   { name: 'Sensory', Icon: SensoryIcon, color: '#F57A3E' },
-  { name: 'Cognitive', Icon: CognitiveIcon, color: '#7481B6' },
+  { name: 'Cognitive', Icon: CognitiveIcon, color: '#6D7EAE' },
 ];
 
 const DOMAINS_OVERVIEW = [
@@ -83,7 +84,7 @@ const DOMAINS_OVERVIEW = [
   { key: 'Speech', label: 'Speech', Icon: SpeechIcon, color: '#1EA7F2', ringColor: '#6BADD6' },
   { key: 'Behavior', label: 'Behaviour', Icon: BehaviourIcon, color: '#F04D9B', ringColor: '#F28FAD' },
   { key: 'Sensory', label: 'Sensory', Icon: SensoryIcon, color: '#F57A3E', ringColor: '#F7B37E' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#7481B6', ringColor: '#7481B6' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#6D7EAE', ringColor: '#6D7EAE' },
 ];
 
 const DOMAIN_SCORE_CONFIG: Record<string, { maxScore: number; ranges: { label: string; min: number; max: number; color: string }[] }> = {
@@ -182,13 +183,15 @@ function normalizeCompletedSession(session: any, caregiverName?: string) {
   const domainBreakdown = Object.entries(DOMAIN_SCORE_CONFIG).map(([key, config]) => {
     const domainScore = domainScores[key] || 0;
     const status = config.ranges.find((range) => domainScore >= range.min && domainScore <= range.max) || config.ranges[config.ranges.length - 1];
+    const statusColors = getStatusColors(status.label);
     return {
       key,
       score: domainScore,
       maxScore: config.maxScore,
       progress: config.maxScore ? domainScore / config.maxScore : 0,
       status: status.label,
-      statusColor: status.color,
+      statusColor: statusColors.color,
+      statusBg: statusColors.bg,
     };
   });
 
@@ -232,7 +235,16 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
   const preloadedAiFaqs = route.params?.preloadedAiFaqs;
 
   const [screeningHistory, setScreeningHistory] = useState<any[]>(preloadedHistory || []);
-  const [aiFaqs, setAiFaqs] = useState<AiFaq[]>(preloadedAiFaqs || []);
+  // Never treat the local key-based FAQ placeholders as AI content. They are
+  // useful only when the API is unavailable and otherwise leak raw keys into
+  // the UI (for example: faq.domain.social.q1.title).
+  const isUsableAiFaq = useCallback((faq: AiFaq) =>
+    Boolean(faq?.title?.trim() && faq?.body?.trim()) &&
+    !faq.title.startsWith('faq.') && !faq.body.startsWith('faq.') &&
+    !('titleKey' in faq) && !('bodyKey' in faq), []);
+  const [aiFaqs, setAiFaqs] = useState<AiFaq[]>(
+    (preloadedAiFaqs || []).filter((faq: AiFaq) => isUsableAiFaq(faq))
+  );
   const [historyLoading, setHistoryLoading] = useState(!preloadedHistory);
   const [aiFaqsLoading, setAiFaqsLoading] = useState(false);
   const lastAiChildIdRef = useRef<string | null>(preloadedAiFaqs?.length ? child?.id ?? null : null);
@@ -255,7 +267,12 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
       let nextHistory = historyResult.data.sessions;
       if (optimistic?.childId === id) {
         const alreadyInApi = nextHistory.some((s: any) => s.id === optimistic.id);
-        nextHistory = alreadyInApi ? nextHistory : [optimistic, ...nextHistory];
+        nextHistory = alreadyInApi
+          ? nextHistory.map((s: any) => s.id === optimistic.id ? optimistic : s)
+          : [optimistic, ...nextHistory];
+        if (optimistic.status === 'completed') {
+          nextHistory = nextHistory.filter((s: any) => s.status !== 'in_progress');
+        }
       }
       setScreeningHistory(nextHistory);
       AsyncStorage.setItem(`@screening_history_${id}`, JSON.stringify(nextHistory)).catch(() => {});
@@ -270,18 +287,24 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     if (!force && lastAiChildIdRef.current === id) return;
 
     setAiFaqsLoading(true);
+    let loaded = false;
     try {
       const aiResult = await getAiFaqs(id, language);
       if (aiResult.success && aiResult.data.faqs.length > 0 && aiResult.data.mode !== 'generic') {
-        const nextFaqs = aiResult.data.faqs.slice(0, 10);
+        const nextFaqs = aiResult.data.faqs
+          .filter(isUsableAiFaq)
+          .slice(0, 10);
+        if (nextFaqs.length === 0) return;
         setAiFaqs(nextFaqs);
         AsyncStorage.setItem(`@ai_faqs_${id}`, JSON.stringify(nextFaqs)).catch(() => {});
+        loaded = true;
       }
     } finally {
       setAiFaqsLoading(false);
-      lastAiChildIdRef.current = id;
+      // Allow a later focus/submit to retry if the provider was unavailable.
+      if (loaded) lastAiChildIdRef.current = id;
     }
-  }, [child?.id, language]);
+  }, [child?.id, language, isUsableAiFaq]);
 
   useEffect(() => {
     const id = child?.id;
@@ -297,7 +320,10 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
         }
         if (shouldFetchAi) {
           const cached = await AsyncStorage.getItem(`@ai_faqs_${id}`);
-          if (cached) setAiFaqs(JSON.parse(cached));
+          if (cached) {
+            const cachedFaqs = JSON.parse(cached);
+            setAiFaqs(Array.isArray(cachedFaqs) ? cachedFaqs.filter(isUsableAiFaq) : []);
+          }
         }
       } catch {}
 
@@ -520,6 +546,14 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
     return getDynamicFAQs(completedCount, inProgress, homePriorityDomains, progressPercent, completedDomains);
   }, [aiFaqs, completedCount, activeSession, continueProgress, continueSectionIndex, homePriorityDomains, reportFaqInput, language]);
 
+  const faqText = useCallback((faq: AiFaq, field: 'title' | 'body') => {
+    const key = field === 'title' ? (faq as any).titleKey : (faq as any).bodyKey;
+    const fallback = (faq as any)[field] || '';
+    if (!key) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  }, [t]);
+
   // Days since last screening
   const daysSinceLastScreening = useMemo(() => {
     if (!latestCompletedSession?.date) return null;
@@ -617,6 +651,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
       domainAnswers: answers,
       isRepeat,
       previousScore,
+      scoreHistory: completedSessions.slice().reverse().map((item: any) => ({ score: item.score, date: item.date })),
       completedCount: completedSessions.length,
       childId: child?.id,
     });
@@ -660,6 +695,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
       domainAnswers: answers,
       isRepeat,
       previousScore,
+      scoreHistory: completedSessions.slice().reverse().map((item: any) => ({ score: item.score, date: item.date })),
       completedCount: completedSessions.length,
       childId: child?.id,
     });
@@ -963,6 +999,8 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       const ringSize = circleSize + ringThickness + ringGap * 2;
                       const onTrack = isDomainOnTrack(domain.key);
                       const progress = getDomainProgress(domain.key);
+                      const domainStatus = latestCompletedSession?.domainBreakdown?.find((item: any) => item.key === domain.key)?.status;
+                      const ringColor = getDomainRingColor(domainStatus, domain.ringColor, progress);
 
                       return (
                         <View key={domain.key} style={styles.domainItem}>
@@ -980,7 +1018,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                                   size={ringSize}
                                   strokeWidth={ringThickness}
                                   progress={progress}
-                                  color={domain.ringColor}
+                                  color={ringColor}
                                 />
                                 <View style={[styles.domainCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2, backgroundColor: domain.color, position: 'absolute' }]}>
                                   <Icon width={scaleSize(24)} height={scaleSize(24)} />
@@ -1002,6 +1040,8 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       const ringSize = circleSize + ringThickness + ringGap * 2;
                       const onTrack = isDomainOnTrack(domain.key);
                       const progress = getDomainProgress(domain.key);
+                      const domainStatus = latestCompletedSession?.domainBreakdown?.find((item: any) => item.key === domain.key)?.status;
+                      const ringColor = getDomainRingColor(domainStatus, domain.ringColor, progress);
 
                       return (
                         <View key={domain.key} style={styles.domainItem}>
@@ -1019,7 +1059,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                                   size={ringSize}
                                   strokeWidth={ringThickness}
                                   progress={progress}
-                                  color={domain.ringColor}
+                                  color={ringColor}
                                 />
                                 <View style={[styles.domainCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2, backgroundColor: domain.color, position: 'absolute' }]}>
                                   <Icon width={scaleSize(24)} height={scaleSize(24)} />
@@ -1132,7 +1172,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       padding={scaleSize(12)}
                     >
                       <View style={[styles.learnMoreHeader, { flexDirection: 'row', alignItems: 'center', gap: scaleSize(8) }]}>
-                        <Text style={[styles.learnMoreTitle, { fontSize: scaleSize(14), flex: 1, fontFamily: 'Inter_500Medium', color: '#18182D' }]}>{'titleKey' in faq ? t((faq as any).titleKey) : faq.title}</Text>
+                        <Text style={[styles.learnMoreTitle, { fontSize: scaleSize(14), flex: 1, fontFamily: 'Inter_500Medium', color: '#18182D' }]}>{faqText(faq, 'title')}</Text>
                         <View style={[styles.learnMoreToggle, { width: scaleSize(20), height: scaleSize(20), borderRadius: scaleSize(10), backgroundColor: '#5963E1', justifyContent: 'center', alignItems: 'center' }]}>
                           <Text style={{ color: '#FFFFFF', fontSize: scaleSize(16), lineHeight: scaleSize(18), fontWeight: '700' }}>{isExpanded ? '−' : '+'}</Text>
                         </View>
@@ -1140,7 +1180,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                       {isExpanded && (
                         <View style={{ marginTop: scaleSize(10) }}>
                           <Text style={[styles.learnMoreBody, { fontSize: scaleSize(12), fontFamily: 'Inter_400Regular', color: '#454545', lineHeight: scaleSize(15) }]}>
-                            {'bodyKey' in faq ? t((faq as any).bodyKey) : faq.body}
+                            {faqText(faq, 'body')}
                           </Text>
                         </View>
                       )}
@@ -1227,6 +1267,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
         onSelectChild={(selectedChild: ChildProfile) => { fetchHistory(selectedChild.id); }}
         onAddChild={() => { setChildSwitcherVisible(false); navigation.navigate('CreateProfile', { nextRoute: 'Home' }); }}
         onEditChild={(c: ChildProfile) => { setChildSwitcherVisible(false); navigation.navigate('EditChildProfile', { child: c }); }}
+        onDeleteChild={() => { setChildSwitcherVisible(false); fetchHistory(); }}
       />
       <Modal
         animationType="slide"
@@ -1763,7 +1804,7 @@ const styles = StyleSheet.create({
   historyScoreLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   viewDetailsBtn: { backgroundColor: '#535BD8' },
   viewDetailsBtnText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
-  overviewCard: { backgroundColor: '#F3F2FF', gap: 8 },
+  overviewCard: { backgroundColor: '#FFFFFF', gap: 8 },
   overviewDivider: { height: 1, backgroundColor: '#E7E8F5' },
   overviewTitle: { fontFamily: 'Inter_700Bold', color: '#2D2A3A' },
   overviewMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
