@@ -35,7 +35,7 @@ const DOMAINS = [
   { key: 'Speech', label: 'Speech', Icon: SpeechIcon, color: '#D6EDF9', activeColor: '#3B8DBD' },
   { key: 'Behavior', label: 'Behavior', Icon: BehaviorIcon, color: '#F7DDE9', activeColor: '#D66A8E' },
   { key: 'Sensory', label: 'Sensory', Icon: SensoryIcon, color: '#FCE5D6', activeColor: '#F4A261' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#E6E3F3', activeColor: '#7D6CB7' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#E6E3F3', activeColor: '#6D7EAE' },
 ];
 
 const QUESTIONS: LocalizedQuestion[] = [
@@ -133,7 +133,7 @@ export default function SpeechScreeningScreen({ navigation }: { navigation: any 
     if (JSON.stringify(next) !== JSON.stringify(answers)) {
       setAnswers(next);
     }
-  }, [screening.domainAnswers, answers]);
+  }, [screening.domainAnswers]);
   const scrollRef = useRef<ScrollView>(null);
   const headerHeightRef = useRef(0);
   const positionsRef = useRef<number[]>([]);
@@ -174,7 +174,7 @@ export default function SpeechScreeningScreen({ navigation }: { navigation: any 
 
       <View style={[styles.header, { paddingHorizontal: padding }]} onLayout={onLayoutHeader}>
         <View style={styles.headerTop}>
-          <Text style={[styles.sectionLabel, { fontSize: scaleFont(12), color: '#3B8DBD' }]}>SECTION 03 OF 06</Text>
+          <Text style={[styles.sectionLabel, { fontSize: scaleFont(12), color: '#3B8DBD' }]}>{t('sectionProgress', { section: '03', total: '06' })}</Text>
           <Pressable onPress={() => { screening.saveProgress(); navigation.navigate('SaveExit', { sectionNumber: 3, answeredCount: answers.filter((a) => typeof a === 'number' && !Number.isNaN(a)).length, totalQuestions: QUESTIONS.length }); }} style={styles.saveExit} hitSlop={scaleSize(10)}>
             <PauseIcon width={scaleSize(16)} height={scaleSize(16)} />
             <Text style={[styles.saveExitText, { fontSize: scaleFont(11) }]}>{t('saveExit')}</Text>
@@ -259,7 +259,7 @@ export default function SpeechScreeningScreen({ navigation }: { navigation: any 
               onLayout={(event) => onLayoutQuestion(qIndex, event)}
             >
               <Text style={[styles.questionMeta, { fontSize: scaleFont(12), marginBottom: scaleSize(8) }]}>
-                Question {qIndex + 1} / {QUESTIONS.length}
+                {t('questionsLabel')} {qIndex + 1} / {QUESTIONS.length}
               </Text>
               <Text style={[styles.questionText, { fontSize: scaleFont(16), lineHeight: scaleFont(22), marginBottom: scaleSize(12) }]}>
                 {(question[language] ?? question.English).text}
@@ -267,7 +267,7 @@ export default function SpeechScreeningScreen({ navigation }: { navigation: any 
 
               <View style={[styles.tipBox, { padding: scaleSize(10), borderLeftWidth: scaleSize(4), marginBottom: scaleSize(12) }]}>
                 <Text style={[styles.tipText, { fontSize: scaleFont(13), lineHeight: scaleFont(18) }]}>
-                  <Text style={styles.tipLabel}>Tip : </Text>
+                  <Text style={styles.tipLabel}>{t('tipLabel')} </Text>
                   {(question[language] ?? question.English).tip}
                 </Text>
               </View>
@@ -337,7 +337,7 @@ export default function SpeechScreeningScreen({ navigation }: { navigation: any 
           ]}
           disabled={!allAnswered}
         >
-          <Text style={[styles.continueText, { fontSize: scaleFont(16) }]}>Continue to next section</Text>
+          <Text style={[styles.continueText, { fontSize: scaleFont(16) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{t('nextSection')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

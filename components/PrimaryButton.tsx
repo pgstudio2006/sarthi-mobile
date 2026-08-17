@@ -17,19 +17,20 @@ export default function PrimaryButton({
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label} numberOfLines={2}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    height: 54,
+    minHeight: 54,
     borderRadius: 28,
     backgroundColor: colors.primaryBlue,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'stretch',
+    paddingVertical: 10,
   },
   disabled: {
     opacity: 0.6,
@@ -39,5 +40,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     color: colors.white,
     textAlign: 'center',
+    lineHeight: 21,
+    flexShrink: 1,
   },
 });

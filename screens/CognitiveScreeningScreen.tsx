@@ -38,7 +38,7 @@ const DOMAINS = [
   { key: 'Speech', label: 'Speech', Icon: SpeechIcon, color: '#D6EDF9', activeColor: '#3B8DBD' },
   { key: 'Behavior', label: 'Behavior', Icon: BehaviorIcon, color: '#F7DDE9', activeColor: '#D66A8E' },
   { key: 'Sensory', label: 'Sensory', Icon: SensoryIcon, color: '#FCE5D6', activeColor: '#F4A261' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#E6E3F3', activeColor: '#7D6CB7' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#E6E3F3', activeColor: '#6D7EAE' },
 ];
 
 const QUESTIONS: LocalizedQuestion[] = [
@@ -47,7 +47,7 @@ const QUESTIONS: LocalizedQuestion[] = [
     Gujarati: { text: `બાળક એક જ કામમાં લાંબા સમય સુધી ધ્યાન રાખી શકતું નથી?`, tip: `રમત, ભણતર અથવા બીજી એક્ટિવિટી કરતી વખતે બાળક થોડા જ સમયમાં બીજું કામ કરવા લાગે.`, options: ['ભાગ્યે જ', 'ક્યારેક', 'ઘણી વખત', 'મોટાભાગે', 'લગભગ હંમેશા'] },
     Hindi: { text: `क्या बच्चा एक ही काम पर ज़्यादा देर तक ध्यान नहीं रख पाता?`, tip: `पढ़ते, खेलते या कोई एक्टिविटी करते समय बच्चा थोड़ी देर में ही दूसरी चीज़ में लग जाता है।`, options: ['बहुत कम', 'कभी-कभी', 'अक्सर', 'ज़्यादातर', 'लगभग हमेशा'] },
     Kannada: { text: `ಮಗು ಒಂದೇ ಕೆಲಸದ ಮೇಲೆ ಹೆಚ್ಚು ಹೊತ್ತು ಗಮನ ಇಡಲು ಕಷ್ಟಪಡುತ್ತದೆಯೇ?`, tip: `ಆಟವಾಡುವಾಗ, ಓದುವಾಗ ಅಥವಾ ಯಾವುದಾದರೂ ಚಟುವಟಿಕೆ ಮಾಡುವಾಗ ಮಗು ಸ್ವಲ್ಪ ಸಮಯದಲ್ಲೇ ಇನ್ನೊಂದು ಕೆಲಸಕ್ಕೆ ತಿರುಗುತ್ತದೆ.`, options: ['ಬಹಳ ಕಡಿಮೆ', 'ಕೆಲವೊಮ್ಮೆ', 'ಆಗಾಗ್ಗೆ', 'ಹೆಚ್ಚಿನ ಸಮಯ', 'ಬಹುತೇಕ ಯಾವಾಗಲೂ'] },
-    Tamil: { text: `ஒரே வேலையில் குழந்தையால் நீண்ட நேரம் கவனம் செலுத்த முடியவில்லையா?`, tip: `படிக்கும்போது, விளையாடும்போது அல்லது ஏதாவது செயலில் இருந்தாலும், குழந்தை சிறிது நேரத்திலேயே வேறு விஷயத்தில் கவனம் செலுத்தத் தொடங்கும்.`, options: ['மிகக் குறைவாக', 'சில நேரங்களில்', 'அடிக்கடி', 'பெரும்பாலான நேரங்களில்', 'கிட்டத்தட்ட எப்போதும்'] },
+    Tamil: { text: `ஒரே வேலையில் குழந்தையால் நீண்ட நேரம் கவனம் செலுத்த முடியவில்லையா?`, tip: `படிக்கும்போது, விளையாடும்போது அல்லது ஏதாவது செயலில் இருந்தாலும், குழந்தை சிறிது நேரத்திலேயே வேறு விஷயத்தில் கவனம் செலுத்தத் தொடங்கும்.`, options: ['மிகக் குறைவாக', 'சில நேரங்களில்', 'அடிக்கடி', 'பெரும்பாலான நேரங்களில்', 'கிட்டத்தட்ட எப்போதும்'] }
   },
   {
     English: { text: `How often does the child take much longer than expected to respond when spoken to?`, tip: `The child's name is called several times before they respond or follow a simple instruction.`, options: ['Rarely', 'Sometimes', 'Often', 'Most of the times', 'Almost Always'] },
@@ -104,7 +104,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
     if (JSON.stringify(next) !== JSON.stringify(answers)) {
       setAnswers(next);
     }
-  }, [screening.domainAnswers, answers]);
+  }, [screening.domainAnswers]);
   const scrollRef = useRef<ScrollView>(null);
   const headerHeightRef = useRef(0);
   const positionsRef = useRef<number[]>([]);
@@ -145,7 +145,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
 
       <View style={[styles.header, { paddingHorizontal: padding }]} onLayout={onLayoutHeader}>
         <View style={styles.headerTop}>
-          <Text style={[styles.sectionLabel, { fontSize: scaleFont(12), color: '#7D6CB7' }]}>SECTION 06 OF 06</Text>
+          <Text style={[styles.sectionLabel, { fontSize: scaleFont(12), color: '#6D7EAE' }]}>{t('sectionProgress', { section: '06', total: '06' })}</Text>
           <Pressable onPress={() => { screening.saveProgress(); navigation.navigate('SaveExit', { sectionNumber: 6, answeredCount: answers.filter((a) => typeof a === 'number' && !Number.isNaN(a)).length, totalQuestions: QUESTIONS.length }); }} style={styles.saveExit} hitSlop={scaleSize(10)}>
             <PauseIcon width={scaleSize(16)} height={scaleSize(16)} />
             <Text style={[styles.saveExitText, { fontSize: scaleFont(11) }]}>{t('saveExit')}</Text>
@@ -228,7 +228,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
               onLayout={(event) => onLayoutQuestion(qIndex, event)}
             >
               <Text style={[styles.questionMeta, { fontSize: scaleFont(12), marginBottom: scaleSize(8) }]}>
-                Question {qIndex + 1} / {QUESTIONS.length}
+                {t('questionsLabel')} {qIndex + 1} / {QUESTIONS.length}
               </Text>
               <Text style={[styles.questionText, { fontSize: scaleFont(16), lineHeight: scaleFont(22), marginBottom: scaleSize(12) }]}>
                 {(question[language] ?? question.English).text}
@@ -236,7 +236,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
 
               <View style={[styles.tipBox, { padding: scaleSize(10), borderLeftWidth: scaleSize(4), marginBottom: scaleSize(12) }]}>
                 <Text style={[styles.tipText, { fontSize: scaleFont(13), lineHeight: scaleFont(18) }]}>
-                  <Text style={styles.tipLabel}>Tip : </Text>
+                  <Text style={styles.tipLabel}>{t('tipLabel')} </Text>
                   {(question[language] ?? question.English).tip}
                 </Text>
               </View>
@@ -285,7 +285,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
         {submitError ? (
           <Text style={[styles.errorText, { fontSize: scaleFont(13), marginBottom: scaleSize(8) }]}>{submitError}</Text>
         ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: scaleSize(12) }}>
+        <View style={{ flex: 1, width: '100%', flexDirection: 'row', alignItems: 'center', gap: scaleSize(12) }}>
           <Pressable
             onPress={() => navigation.goBack()}
             style={[styles.backCircle, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(28) }]}
@@ -367,7 +367,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
             {submitting ? (
               <ActivityIndicator color={colors.white} size="small" />
             ) : (
-              <Text style={[styles.continueText, { fontSize: scaleFont(16) }]}>View report</Text>
+              <Text style={[styles.continueText, { fontSize: scaleFont(16) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{t('finishScreening')}</Text>
             )}
           </Pressable>
         </View>

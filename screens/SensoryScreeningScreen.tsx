@@ -35,7 +35,7 @@ const DOMAINS = [
   { key: 'Speech', label: 'Speech', Icon: SpeechIcon, color: '#D6EDF9', activeColor: '#3B8DBD' },
   { key: 'Behavior', label: 'Behavior', Icon: BehaviorIcon, color: '#F7DDE9', activeColor: '#D66A8E' },
   { key: 'Sensory', label: 'Sensory', Icon: SensoryIcon, color: '#FCE5D6', activeColor: '#F4A261' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#E6E3F3', activeColor: '#7D6CB7' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#E6E3F3', activeColor: '#6D7EAE' },
 ];
 
 const QUESTIONS: LocalizedQuestion[] = [
@@ -44,7 +44,7 @@ const QUESTIONS: LocalizedQuestion[] = [
     Gujarati: { text: `સામાન્ય અવાજ, સ્પર્શ, કપડાં, સુગંધ અથવા તેજ લાઇટથી બાળકને ખૂબ તકલીફ થાય છે?`, tip: `મિક્સરનો અવાજ, ચોક્કસ કપડાં અથવા તેજ લાઇટથી બાળક કાન ઢાંકી લે, કપડાં ઉતારી દે અથવા ખૂબ પરેશાન થઈ જાય.`, options: ['ભાગ્યે જ', 'ક્યારેક', 'ઘણી વખત', 'મોટાભાગે', 'લગભગ હંમેશા'] },
     Hindi: { text: `क्या सामान्य आवाज़, छूने, कपड़ों, गंध या तेज़ रोशनी से बच्चे को बहुत ज़्यादा परेशानी होती है?`, tip: `मिक्सर की आवाज़, कुछ कपड़े पहनने या तेज़ रोशनी होने पर बच्चा कान ढक लेता है, कपड़े पहनने से मना कर देता है या रोने लगता है।`, options: ['बहुत कम', 'कभी-कभी', 'अक्सर', 'ज़्यादातर', 'लगभग हमेशा'] },
     Kannada: { text: `ಸಾಮಾನ್ಯ ಶಬ್ದ, ಸ್ಪರ್ಶ, ಬಟ್ಟೆ, ವಾಸನೆ ಅಥವಾ ಹೆಚ್ಚು ಬೆಳಕಿನಿಂದ ಮಗುವಿಗೆ ತುಂಬಾ ತೊಂದರೆ ಆಗುತ್ತದೆಯೇ?`, tip: `ಮಿಕ್ಸಿಯ ಶಬ್ದ, ಕೆಲವು ಬಟ್ಟೆಗಳನ್ನು ಧರಿಸುವಾಗ ಅಥವಾ ಹೆಚ್ಚು ಬೆಳಕಿದ್ದಾಗ ಮಗು ಕಿವಿ ಮುಚ್ಚಿಕೊಳ್ಳುತ್ತದೆ, ಬಟ್ಟೆ ಧರಿಸಲು ನಿರಾಕರಿಸುತ್ತದೆ ಅಥವಾ ಅಳಲು ಆರಂಭಿಸುತ್ತದೆ.`, options: ['ಬಹಳ ಕಡಿಮೆ', 'ಕೆಲವೊಮ್ಮೆ', 'ಆಗಾಗ್ಗೆ', 'ಹೆಚ್ಚಿನ ಸಮಯ', 'ಬಹುತೇಕ ಯಾವಾಗಲೂ'] },
-    Tamil: { text: `சாதாரண சத்தம், தொடுதல், சில துணிகள், மணம் அல்லது அதிக வெளிச்சம் குழந்தைக்கு மிகவும் சிரமமாக இருக்கிறதா?`, tip: `மிக்ஸியின் சத்தம், சில துணிகளை அணியும்போது அல்லது அதிக வெளிச்சத்தில் குழந்தை காதை மூடிக்கொள்வது, அந்த துணியை அணிய மறுப்பது அல்லது அழ ஆரம்பிப்பது.`, options: ['மிகக் குறைவாக', 'சில நேரங்களில்', 'அடிக்கடி', 'பெரும்பாலான நேரங்களில்', 'கிட்டத்தட்ட எப்போதும்'] },
+    Tamil: { text: `சாதாரண சத்தம், தொடுதல், சில துணிகள், மணம் அல்லது அதிக வெளிச்சம் குழந்தைக்கு மிகவும் சிரமமாக இருக்கிறதா?`, tip: `மிக்ஸியின் சத்தம், சில துணிகளை அணியும்போது அல்லது அதிக வெளிச்சத்தில் குழந்தை காதை மூடிக்கொள்வது, அந்த துணியை அணிய மறுப்பது அல்லது அழ ஆரம்பிப்பது.`, options: ['மிகக் குறைவாக', 'சில நேரங்களில்', 'அடிக்கடி', 'பெரும்பாலான நேரங்களில்', 'கிட்டத்தட்ட எப்போதும்'] }
   },
   {
     English: { text: `How often does the child stare into space for a long time without responding?`, tip: `The child keeps staring ahead and does not respond immediately when spoken to.`, options: ['Rarely', 'Sometimes', 'Often', 'Most of the times', 'Almost Always'] },
@@ -112,7 +112,7 @@ export default function SensoryScreeningScreen({ navigation }: { navigation: any
     if (JSON.stringify(next) !== JSON.stringify(answers)) {
       setAnswers(next);
     }
-  }, [screening.domainAnswers, answers]);
+  }, [screening.domainAnswers]);
   const scrollRef = useRef<ScrollView>(null);
   const headerHeightRef = useRef(0);
   const positionsRef = useRef<number[]>([]);
@@ -153,7 +153,7 @@ export default function SensoryScreeningScreen({ navigation }: { navigation: any
 
       <View style={[styles.header, { paddingHorizontal: padding }]} onLayout={onLayoutHeader}>
         <View style={styles.headerTop}>
-          <Text style={[styles.sectionLabel, { fontSize: scaleFont(12), color: '#F4A261' }]}>SECTION 05 OF 06</Text>
+          <Text style={[styles.sectionLabel, { fontSize: scaleFont(12), color: '#F4A261' }]}>{t('sectionProgress', { section: '05', total: '06' })}</Text>
           <Pressable onPress={() => { screening.saveProgress(); navigation.navigate('SaveExit', { sectionNumber: 5, answeredCount: answers.filter((a) => typeof a === 'number' && !Number.isNaN(a)).length, totalQuestions: QUESTIONS.length }); }} style={styles.saveExit} hitSlop={scaleSize(10)}>
             <PauseIcon width={scaleSize(16)} height={scaleSize(16)} />
             <Text style={[styles.saveExitText, { fontSize: scaleFont(11) }]}>{t('saveExit')}</Text>
@@ -238,7 +238,7 @@ export default function SensoryScreeningScreen({ navigation }: { navigation: any
               onLayout={(event) => onLayoutQuestion(qIndex, event)}
             >
               <Text style={[styles.questionMeta, { fontSize: scaleFont(12), marginBottom: scaleSize(8) }]}>
-                Question {qIndex + 1} / {QUESTIONS.length}
+                {t('questionsLabel')} {qIndex + 1} / {QUESTIONS.length}
               </Text>
               <Text style={[styles.questionText, { fontSize: scaleFont(16), lineHeight: scaleFont(22), marginBottom: scaleSize(12) }]}>
                 {(question[language] ?? question.English).text}
@@ -246,7 +246,7 @@ export default function SensoryScreeningScreen({ navigation }: { navigation: any
 
               <View style={[styles.tipBox, { padding: scaleSize(10), borderLeftWidth: scaleSize(4), marginBottom: scaleSize(12) }]}>
                 <Text style={[styles.tipText, { fontSize: scaleFont(13), lineHeight: scaleFont(18) }]}>
-                  <Text style={styles.tipLabel}>Tip : </Text>
+                  <Text style={styles.tipLabel}>{t('tipLabel')} </Text>
                   {(question[language] ?? question.English).tip}
                 </Text>
               </View>
@@ -316,7 +316,7 @@ export default function SensoryScreeningScreen({ navigation }: { navigation: any
           ]}
           disabled={!allAnswered}
         >
-          <Text style={[styles.continueText, { fontSize: scaleFont(16) }]}>Continue to next section</Text>
+          <Text style={[styles.continueText, { fontSize: scaleFont(16) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{t('nextSection')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

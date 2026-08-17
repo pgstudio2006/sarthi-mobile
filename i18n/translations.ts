@@ -47,6 +47,8 @@ const en: TranslationTable = {
     viewReport: "View Report",
     maybeLater: 'Maybe later',
     questionsLabel: 'Questions',
+    tipLabel: 'Tip :',
+    sectionProgress: 'Section {section} of {total}',
     minutesLabel: 'Minutes',
     domainsLabel: 'Domains',
     next: 'Next',
@@ -333,6 +335,8 @@ const en: TranslationTable = {
   };
 
 const tamilAdditional: TranslationTable = {
+    tipLabel: 'குறிப்பு :',
+    sectionProgress: '{total} இல் {section} பகுதி',
   addChildrenSubtitle: 'மற்றொரு குழந்தையைச் சேர்த்து அனைவரின் முன்னேற்றத்தையும் கண்காணிக்கவும்',
   startTypingCity: 'நகரத்தின் பெயரைத் தட்டச்சு செய்யத் தொடங்குங்கள்',
   yourFirstStep: 'உங்கள் முதல் படி',
