@@ -6,11 +6,13 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { useTranslation } from '../i18n';
 import Frame80Svg from '../assets/screen7/frame80.svg';
 import PrimaryButton from '../components/PrimaryButton';
+import ConsentBottomSheet from '../components/ConsentBottomSheet';
 import ChoiceGrid from '../components/ChoiceGrid';
 import ScreenLayout from '../components/ScreenLayout';
 import { useResponsive } from '../utils/responsive';
@@ -113,21 +115,9 @@ export default function CreateCaregiverProfileScreen({
   const [finalValue, setFinalValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const roleConfig = role ? ROLE_CONFIG[role] : undefined;
-  const needsRoleDetails = roleConfig !== undefined && role !== 'Mother' && role !== 'Father';
-
-  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const fieldErrors = {
-    name: name.trim() ? '' : t('requiredField'),
-    email: !email.trim() ? t('requiredField') : !emailIsValid ? t('invalidEmail') : '',
-    city: city.trim() ? '' : t('requiredField'),
-    role: role ? '' : t('requiredField'),
-    secondaryChoice: needsRoleDetails && (roleConfig?.secondaryOptions.length ?? 0) > 0 && !secondaryChoice ? t('requiredField') : '',
-    finalValue: needsRoleDetails && !finalValue.trim() ? t('requiredField') : '',
-  };
-  const markTouched = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
-  const showFieldError = (field: keyof typeof fieldErrors) => touched[field] && fieldErrors[field];
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [caregiverConsent, setCaregiverConsent] = useState(false);
+  const [consentSheetVisible, setConsentSheetVisible] = useState(false);
 
   useEffect(() => {
     const query = city.trim();
@@ -161,13 +151,19 @@ export default function CreateCaregiverProfileScreen({
     };
   }, [city, locationSelected]);
 
+  const roleConfig = role ? ROLE_CONFIG[role] : undefined;
+  const needsRoleDetails = roleConfig !== undefined && role !== 'Mother' && role !== 'Father';
+  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+
   const isValid =
-    !fieldErrors.name &&
-    !fieldErrors.email &&
-    !fieldErrors.role &&
-    !fieldErrors.city &&
-    !fieldErrors.secondaryChoice &&
-    !fieldErrors.finalValue;
+    name.trim().length > 0 &&
+    emailIsValid &&
+    role !== null &&
+    city.trim().length > 0 &&
+    caregiverConsent &&
+    (!needsRoleDetails ||
+      (roleConfig.secondaryOptions.length === 0 || secondaryChoice !== null) &&
+      finalValue.length > 0);
 
   const handleRoleSelect = (selectedRole: string | null) => {
     setRole(selectedRole);
@@ -177,10 +173,11 @@ export default function CreateCaregiverProfileScreen({
   };
 
   const handleContinue = async () => {
+    setEmailTouched(true);
     if (!isValid || submitting) return;
     setSubmitting(true);
     setError('');
-    const input: any = { name, role: role || '', email, location: city };
+    const input: any = { name, role: role || '', email, location: city, consentGiven: true };
     if (role === 'Therapist' || role === 'Teacher' || role === 'Doctor') {
       input.speciality = secondaryChoice || '';
       input.institution = finalValue;
@@ -286,7 +283,6 @@ export default function CreateCaregiverProfileScreen({
           <View
             style={[
               styles.inputShell,
-              showFieldError('name') && styles.inputShellError,
               {
                 borderRadius: scaleSize(16),
                 paddingHorizontal: scaleSize(16),
@@ -297,12 +293,10 @@ export default function CreateCaregiverProfileScreen({
             <TextInput
               value={name}
               onChangeText={(txt) => { setName(txt); setError(''); }}
-              onBlur={() => markTouched('name')}
               style={[styles.inputText, { fontSize: scaleFont(16) }]}
               selectionColor={colors.primaryBlue}
             />
           </View>
-          {showFieldError('name') ? <Text style={styles.fieldErrorText}>{fieldErrors.name}</Text> : null}
         </View>
 
         <View style={styles.field}>
@@ -312,7 +306,7 @@ export default function CreateCaregiverProfileScreen({
           <View
             style={[
               styles.inputShell,
-              showFieldError('email') && styles.inputShellError,
+              emailTouched && email.length > 0 && !emailIsValid && styles.inputShellError,
               {
                 borderRadius: scaleSize(16),
                 paddingHorizontal: scaleSize(16),
@@ -322,15 +316,19 @@ export default function CreateCaregiverProfileScreen({
           >
             <TextInput
               value={email}
-              onChangeText={(txt) => { setEmail(txt); setError(''); }}
-              onBlur={() => markTouched('email')}
+              onChangeText={(txt) => { setEmail(txt); setError(''); setEmailTouched(true); }}
+              onBlur={() => setEmailTouched(true)}
               style={[styles.inputText, { fontSize: scaleFont(16) }]}
               selectionColor={colors.primaryBlue}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
             />
           </View>
-          {showFieldError('email') ? <Text style={styles.fieldErrorText}>{fieldErrors.email}</Text> : null}
+          {emailTouched && email.length > 0 && !emailIsValid ? (
+            <Text style={[styles.fieldErrorText, { fontSize: scaleFont(12) }]}>{t('invalidEmail')}</Text>
+          ) : null}
         </View>
 
         <View style={styles.field}>
@@ -341,7 +339,6 @@ export default function CreateCaregiverProfileScreen({
             style={[
               styles.inputShell,
               styles.cityShell,
-              showFieldError('city') && styles.inputShellError,
               {
                 borderRadius: scaleSize(14),
                 paddingHorizontal: scaleSize(16),
@@ -352,7 +349,6 @@ export default function CreateCaregiverProfileScreen({
             <TextInput
               value={city}
               onChangeText={(txt) => { setCity(txt); setLocationSelected(false); setError(''); }}
-              onBlur={() => markTouched('city')}
               placeholder={t('startTypingCity')}
               placeholderTextColor="#A6A6B8"
               style={[styles.inputText, { fontSize: scaleFont(16) }]}
@@ -360,7 +356,6 @@ export default function CreateCaregiverProfileScreen({
             />
             <LocationOnIcon width={scaleSize(24)} height={scaleSize(24)} />
           </View>
-          {showFieldError('city') ? <Text style={styles.fieldErrorText}>{fieldErrors.city}</Text> : null}
           {(locationLoading || locationSuggestions.length > 0) && !locationSelected ? (
             <View style={styles.locationDropdown}>
               {locationLoading ? <ActivityIndicator color={colors.primaryBlue} /> : null}
@@ -390,11 +385,10 @@ export default function CreateCaregiverProfileScreen({
           <ChoiceGrid
             options={ROLES}
             selected={role}
-            onSelect={(selectedRole) => { markTouched('role'); handleRoleSelect(selectedRole); }}
+            onSelect={handleRoleSelect}
             columns={2}
             getLabel={(r) => t(toCamelKey(r))}
           />
-          {showFieldError('role') ? <Text style={styles.fieldErrorText}>{fieldErrors.role}</Text> : null}
         </View>
 
         {needsRoleDetails ? (
@@ -407,11 +401,10 @@ export default function CreateCaregiverProfileScreen({
                 <ChoiceGrid
                   options={roleConfig.secondaryOptions}
                   selected={secondaryChoice}
-                  onSelect={(sel) => { markTouched('secondaryChoice'); setSecondaryChoice(sel); setError(''); }}
+                  onSelect={(sel) => { setSecondaryChoice(sel); setError(''); }}
                   columns={2}
                   getLabel={(o) => t(toCamelKey(o))}
                 />
-                {showFieldError('secondaryChoice') ? <Text style={styles.fieldErrorText}>{fieldErrors.secondaryChoice}</Text> : null}
               </View>
             ) : null}
 
@@ -424,7 +417,6 @@ export default function CreateCaregiverProfileScreen({
                   styles.inputShell,
                   {
                     borderRadius: scaleSize(16),
-                    ...(showFieldError('finalValue') ? styles.inputShellError : {}),
                     paddingHorizontal: scaleSize(16),
                     paddingVertical: scaleSize(12),
                   },
@@ -433,7 +425,6 @@ export default function CreateCaregiverProfileScreen({
                 <TextInput
                   value={finalValue}
                   onChangeText={(txt) => { setFinalValue(txt); setError(''); }}
-                  onBlur={() => markTouched('finalValue')}
                   placeholder={roleConfig.finalPlaceholder}
                   placeholderTextColor="#A6A6B8"
                   style={[styles.inputText, { fontSize: scaleFont(16) }]}
@@ -441,10 +432,21 @@ export default function CreateCaregiverProfileScreen({
                   autoCapitalize="words"
                 />
               </View>
-              {showFieldError('finalValue') ? <Text style={styles.fieldErrorText}>{fieldErrors.finalValue}</Text> : null}
             </View>
           </>
         ) : null}
+      </View>
+
+      <View style={[styles.consentSection, { marginTop: scaleSize(18) }]}>
+        <Pressable onPress={() => { Keyboard.dismiss(); caregiverConsent ? setCaregiverConsent(false) : setConsentSheetVisible(true); }} style={styles.consentRow} accessibilityRole="checkbox" accessibilityState={{ checked: caregiverConsent }}>
+          <View style={[styles.checkbox, { width: scaleSize(22), height: scaleSize(22), borderRadius: scaleSize(6) }, caregiverConsent && styles.checkboxChecked]}>
+            {caregiverConsent ? <Text style={[styles.checkboxMark, { fontSize: scaleFont(15) }]}>✓</Text> : null}
+          </View>
+          <Text style={[styles.consentText, { fontSize: scaleFont(12), lineHeight: scaleFont(18) }]}>{t('consentCheckboxCaregiver')}</Text>
+        </Pressable>
+        <Pressable onPress={() => { Keyboard.dismiss(); setConsentSheetVisible(true); }} style={styles.detailsLink}>
+          <Text style={[styles.detailsLinkText, { fontSize: scaleFont(12) }]}>{t('readConsentDetails')}</Text>
+        </Pressable>
       </View>
 
       {error ? (
@@ -452,6 +454,17 @@ export default function CreateCaregiverProfileScreen({
           {error}
         </Text>
       ) : null}
+
+      <ConsentBottomSheet
+        visible={consentSheetVisible}
+        title={t('caregiverConsent')}
+        body={t('caregiverConsentBody')}
+        points={[t('caregiverConsentPoint1'), t('caregiverConsentPoint2')]}
+        links={[{ label: t('privacyPolicy'), url: 'https://saarathi.care/privacy' }, { label: t('termsOfUse'), url: 'https://saarathi.care/terms' }]}
+        confirmLabel={t('understood')}
+        onClose={() => setConsentSheetVisible(false)}
+        onConfirm={() => { Keyboard.dismiss(); setCaregiverConsent(true); setConsentSheetVisible(false); }}
+      />
     </ScreenLayout>
   );
 }
@@ -511,15 +524,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputShellError: {
-    borderColor: colors.errorRed,
-  },
-  fieldErrorText: {
-    fontFamily: 'Inter_500Medium',
-    color: colors.errorRed,
-    fontSize: 12,
-    marginTop: -6,
-  },
   cityShell: {
     justifyContent: 'space-between',
   },
@@ -548,6 +552,50 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     color: colors.mainBlack,
     padding: 0,
+  },
+  inputShellError: {
+    borderColor: colors.errorRed,
+  },
+  fieldErrorText: {
+    fontFamily: 'Inter_500Medium',
+    color: colors.errorRed,
+    marginTop: -6,
+  },
+  consentSection: {
+    width: '100%',
+    gap: 8,
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  checkbox: {
+    borderWidth: 1.5,
+    borderColor: '#C7CBD8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primaryBlue,
+    borderColor: colors.primaryBlue,
+  },
+  checkboxMark: {
+    color: colors.white,
+    fontFamily: 'Inter_700Bold',
+  },
+  consentText: {
+    flex: 1,
+    fontFamily: 'Inter_500Medium',
+    color: colors.grey,
+  },
+  detailsLink: {
+    alignSelf: 'flex-start',
+    marginLeft: 32,
+  },
+  detailsLinkText: {
+    fontFamily: 'Inter_700Bold',
+    color: colors.primaryBlue,
   },
   errorText: {
     fontFamily: 'Inter_500Medium',

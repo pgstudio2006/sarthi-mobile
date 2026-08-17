@@ -7,12 +7,14 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { useTranslation } from '../i18n';
 import Frame80Svg from '../assets/screen7/frame80.svg';
 import ChoiceGrid from '../components/ChoiceGrid';
 import PrimaryButton from '../components/PrimaryButton';
+import ConsentBottomSheet from '../components/ConsentBottomSheet';
 import PrivacyInfoCard from '../components/PrivacyInfoCard';
 import ChevronLeftIcon from '../components/ChevronLeftIcon';
 import ScreenLayout from '../components/ScreenLayout';
@@ -71,20 +73,13 @@ export default function CreateProfileScreen({
   const [gender, setGender] = useState<string | null>(initialGender || null);
   const [birthContext, setBirthContext] = useState<string | null>(initialBirthContext || null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [childConsent, setChildConsent] = useState(false);
+  const [consentSheetVisible, setConsentSheetVisible] = useState(false);
 
   const dobDisplay = formatISODateDisplay(dob, code);
   const ageLabel = calculateAgeLabel(dob, code);
-  const fieldErrors = {
-    childName: childName.trim() ? '' : t('requiredField'),
-    dob: dob ? '' : t('requiredField'),
-    gender: gender ? '' : t('requiredField'),
-    birthContext: birthContext ? '' : t('requiredField'),
-  };
-  const markTouched = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
-  const showFieldError = (field: keyof typeof fieldErrors) => touched[field] && fieldErrors[field];
 
-  const isValid = Object.values(fieldErrors).every((value) => !value);
+  const isValid = childName.trim().length > 0 && dob.length > 0 && gender !== null && birthContext !== null && childConsent;
 
   const handleContinue = async () => {
     if (!isValid || submitting) return;
@@ -97,6 +92,7 @@ export default function CreateProfileScreen({
       gender: gender || '',
       birthContext: birthContext || '',
       ageInMonths,
+      consentGiven: true,
     });
     setSubmitting(false);
     if (result.success) {
@@ -141,16 +137,14 @@ export default function CreateProfileScreen({
       <View style={{ marginTop: 24 * scale, gap: 24 * scale }}>
         <View style={{ gap: 12 * scale }}>
           <Text style={[styles.fieldLabel, { fontSize: 12 * scale }]}>{t('childFullName')}</Text>
-          <View style={[styles.inputShell, showFieldError('childName') && styles.inputShellError, { borderRadius: 16 * scale, paddingHorizontal: 16 * scale, paddingVertical: 12 * scale }]}>
+          <View style={[styles.inputShell, { borderRadius: 16 * scale, paddingHorizontal: 16 * scale, paddingVertical: 12 * scale }]}>
             <TextInput
               value={childName}
               onChangeText={(txt) => { setChildName(txt); setError(''); }}
-              onBlur={() => markTouched('childName')}
               style={[styles.inputText, { fontSize: 16 * scale }]}
               selectionColor={colors.primaryBlue}
             />
           </View>
-          {showFieldError('childName') ? <Text style={[styles.fieldErrorText, { fontSize: 12 * scale }]}>{fieldErrors.childName}</Text> : null}
         </View>
 
         <View style={{ gap: 12 * scale }}>
@@ -176,15 +170,25 @@ export default function CreateProfileScreen({
 
         <View style={{ gap: 12 * scale }}>
           <Text style={[styles.fieldLabel, { fontSize: 12 * scale }]}>{t('gender')}</Text>
-          <ChoiceGrid options={GENDERS} selected={gender} onSelect={(sel) => { markTouched('gender'); setGender(sel); setError(''); }} columns={3} getLabel={(g) => t(g === 'Male' ? 'male' : g === 'Female' ? 'female' : 'preferNotToSay')} />
-          {showFieldError('gender') ? <Text style={[styles.fieldErrorText, { fontSize: 12 * scale }]}>{fieldErrors.gender}</Text> : null}
+          <ChoiceGrid options={GENDERS} selected={gender} onSelect={(sel) => { setGender(sel); setError(''); }} columns={3} getLabel={(g) => t(g === 'Male' ? 'male' : g === 'Female' ? 'female' : 'preferNotToSay')} />
         </View>
 
         <View style={{ gap: 12 * scale }}>
           <Text style={[styles.fieldLabel, { fontSize: 12 * scale }]}>{t('birthContext')}</Text>
-          <ChoiceGrid options={BIRTH_CONTEXT} selected={birthContext} onSelect={(sel) => { markTouched('birthContext'); setBirthContext(sel); setError(''); }} columns={2} getLabel={(b) => t(b === 'Normal Birth' ? 'normalBirth' : 'prematureBirth')} />
-          {showFieldError('birthContext') ? <Text style={[styles.fieldErrorText, { fontSize: 12 * scale }]}>{fieldErrors.birthContext}</Text> : null}
+          <ChoiceGrid options={BIRTH_CONTEXT} selected={birthContext} onSelect={(sel) => { setBirthContext(sel); setError(''); }} columns={2} getLabel={(b) => t(b === 'Normal Birth' ? 'normalBirth' : 'prematureBirth')} />
         </View>
+      </View>
+
+      <View style={{ marginTop: 18 * scale, gap: 8 * scale }}>
+        <Pressable onPress={() => { Keyboard.dismiss(); childConsent ? setChildConsent(false) : setConsentSheetVisible(true); }} style={styles.consentRow} accessibilityRole="checkbox" accessibilityState={{ checked: childConsent }}>
+          <View style={[styles.checkbox, { width: 22 * scale, height: 22 * scale, borderRadius: 6 * scale }, childConsent && styles.checkboxChecked]}>
+            {childConsent ? <Text style={[styles.checkboxMark, { fontSize: 15 * scale }]}>✓</Text> : null}
+          </View>
+          <Text style={[styles.consentText, { fontSize: 12 * scale, lineHeight: 18 * scale }]}>{t('consentCheckboxChild')}</Text>
+        </Pressable>
+        <Pressable onPress={() => { Keyboard.dismiss(); setConsentSheetVisible(true); }} style={styles.detailsLink}>
+          <Text style={[styles.detailsLinkText, { fontSize: 12 * scale }]}>{t('readConsentDetails')}</Text>
+        </Pressable>
       </View>
 
       {error ? (
@@ -205,6 +209,17 @@ export default function CreateProfileScreen({
           </View>
         )}
       </View>
+
+      <ConsentBottomSheet
+        visible={consentSheetVisible}
+        title={t('childDataConsent')}
+        body={t('childDataConsentBody')}
+        points={[t('childDataConsentPoint1'), t('childDataConsentPoint2')]}
+        links={[{ label: t('privacyPolicy'), url: 'https://saarathi.care/privacy' }, { label: t('termsOfUse'), url: 'https://saarathi.care/terms' }, { label: t('dataPrivacy'), url: 'https://saarathi.care/privacy' }]}
+        confirmLabel={t('understood')}
+        onClose={() => setConsentSheetVisible(false)}
+        onConfirm={() => { Keyboard.dismiss(); setChildConsent(true); setConsentSheetVisible(false); }}
+      />
 
       <DatePickerModal
         visible={showDatePicker}
@@ -258,14 +273,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputShellError: {
-    borderColor: colors.errorRed,
-  },
-  fieldErrorText: {
-    fontFamily: 'Inter_500Medium',
-    color: colors.errorRed,
-    marginTop: -6,
-  },
   dateInputShell: {
     justifyContent: 'space-between',
   },
@@ -274,6 +281,38 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     color: colors.mainBlack,
     padding: 0,
+  },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  checkbox: {
+    borderWidth: 1.5,
+    borderColor: '#C7CBD8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primaryBlue,
+    borderColor: colors.primaryBlue,
+  },
+  checkboxMark: {
+    color: colors.white,
+    fontFamily: 'Inter_700Bold',
+  },
+  consentText: {
+    flex: 1,
+    fontFamily: 'Inter_500Medium',
+    color: colors.grey,
+  },
+  detailsLink: {
+    alignSelf: 'flex-start',
+    marginLeft: 32,
+  },
+  detailsLinkText: {
+    fontFamily: 'Inter_700Bold',
+    color: colors.primaryBlue,
   },
   errorText: {
     fontFamily: 'Inter_500Medium',
