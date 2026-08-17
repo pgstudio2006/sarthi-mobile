@@ -18,9 +18,10 @@ import Svg, { Line, Circle, Path, Rect, Text as SvgText, G } from 'react-native-
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getDomainStatus, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import GradientBorderCard from '../components/GradientBorderCard';
+import ScoreTrendCard from '../components/ScoreTrendCard';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
 import CalendarIcon from '../assets/figma/screen28/calendar_month.svg';
 import WarningIcon from '../assets/figma/screen28/Frame-1.svg';
@@ -47,7 +48,7 @@ const DOMAINS_OVERVIEW = [
   { key: 'Speech', label: 'Speech', Icon: SpeechIcon, color: '#3B8DBD', progress: 0.85, ringColor: '#6BADD6' },
   { key: 'Behavior', label: 'Behaviour', Icon: BehaviorIcon, color: '#D66A8E', progress: 0.7, ringColor: '#F28FAD' },
   { key: 'Sensory', label: 'Sensory', Icon: SensoryIcon, color: '#F4A261', progress: 1, ringColor: '#F7B37E' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#7D6CB7', progress: 0, ringColor: 'transparent' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#6D7EAE', progress: 0, ringColor: 'transparent' },
 ];
 
 const DOMAINS_DETAIL = [
@@ -151,7 +152,7 @@ const DOMAINS_DETAIL = [
     key: 'Cognitive',
     label: 'Cognitive',
     Icon: CognitiveIcon,
-    color: '#7D6CB7',
+    color: '#6D7EAE',
     score: '33/45',
     status: 'Doing great',
     statusColor: '#1A7340',
@@ -324,6 +325,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
     : 'mildResultDescription';
 
   const resultColors = useMemo(() => getResultColors(result), [result]);
+  const isMildResult = resultLower.includes('mild');
 
   const getStatusKey = (status: string) => {
     const lower = (status ?? '').toLowerCase();
@@ -335,6 +337,15 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
     if (lower.includes('support')) return 'needsSupport';
     return lower.replace(/\s+/g, '');
   };
+
+  const getDomainLabelKey = (key: string) => ({
+    Social: 'social',
+    Emotion: 'emotional',
+    Speech: 'speech',
+    Behavior: 'behavioural',
+    Sensory: 'sensory',
+    Cognitive: 'cognitive',
+  } as Record<string, string>)[key] || key;
 
   const isRepeat = route?.params?.isRepeat ?? false;
   const previousScore = route?.params?.previousScore ?? null;
@@ -381,8 +392,13 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
         return statusLower.includes('great') || statusLower.includes('well');
       }
     }
-    if (result === 'Mild Autism' && key === 'Cognitive') return true;
     if (result === 'Normal' || result === 'No Signs of Autism') return true;
+    const answers = domainAnswers[key] || [];
+    if (answers.length > 0) {
+      const scoreFromAnswers = answers.reduce((sum: number, answer: number) => sum + Number(answer) + 1, 0);
+      const status = getDomainStatus(key, scoreFromAnswers).label;
+      return status === 'Doing great' || status === 'Doing well';
+    }
     return false;
   };
 
@@ -393,6 +409,12 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
         return bd.progress;
       }
     }
+    const answers = domainAnswers[key] || [];
+    if (answers.length > 0) {
+      const maxScores: Record<string, number> = { Social: 45, Emotion: 25, Speech: 45, Behavior: 35, Sensory: 30, Cognitive: 20 };
+      const scoreFromAnswers = answers.reduce((sum: number, answer: number) => sum + Number(answer) + 1, 0);
+      return scoreFromAnswers / (maxScores[key] ?? 1);
+    }
     if (result === 'Mild Autism') {
       const fallbacks: Record<string, number> = {
         Social: 0.75,
@@ -400,7 +422,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
         Speech: 0.85,
         Behavior: 0.7,
         Sensory: 0.8,
-        Cognitive: 0,
+        Cognitive: 0.5,
       };
       return fallbacks[key] ?? 0.7;
     }
@@ -411,7 +433,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
     if (domainBreakdown) {
       const bd = domainBreakdown.find((b: any) => b.key === d.key);
       if (bd) {
-        return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor) };
+        return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor, bd?.progress) };
       }
     }
     return d;
@@ -428,11 +450,16 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
       if (bd) {
         scoreStr = `${bd.score ?? 0}/${bd.maxScore ?? 45}`;
         statusStr = bd.status ?? d.status;
-        const statusColors = getStatusColors(statusStr, { text: d.statusColor, bg: d.statusBg });
-        statusColorStr = statusColors.text;
-        statusBgStr = statusColors.bg;
+        statusColorStr = bd.statusColor ?? d.statusColor;
+        statusBgStr = bd.statusBg ?? d.statusBg;
       }
     }
+
+    const scoreValue = Number(domainBreakdown?.find((item: any) => item.key === d.key)?.score);
+    if (Number.isFinite(scoreValue)) statusStr = getDomainStatus(d.key, scoreValue).label;
+    const statusColors = getStatusColors(statusStr);
+    statusColorStr = statusColors.color;
+    statusBgStr = statusColors.bg;
 
     // Now compute dynamic attention and strengths lists:
     const questions = DOMAIN_QUESTIONS[d.key] || [];
@@ -577,14 +604,14 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                 {score} / {total} <Text style={{ color: '#6B7180' }}>*</Text>
               </Text>
             </View>
-            <View style={[styles.resultBadge, { borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), backgroundColor: resultColors.bg, borderWidth: 1, borderColor: resultColors.border }]}>
+            <View style={[styles.resultBadge, { maxWidth: '58%', borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), backgroundColor: resultColors.bg, borderWidth: 1, borderColor: resultColors.border }]}>
               <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color={resultColors.fill} />
-              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
+              <Text numberOfLines={2} style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
 
           <View style={[styles.progressTrack, { height: scaleSize(6), borderRadius: scaleSize(3), marginTop: scaleSize(8) }]}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: resultColors.fill }]} />
+            <View style={[styles.progressFill, { width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3) }]} />
           </View>
 
           <Text style={[styles.disclaimer, { fontSize: scaleSize(12), marginTop: scaleSize(8) }]}>
@@ -631,7 +658,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                           </View>
                         </View>
                       )}
-                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{domain.label}</Text>
+                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{t(getDomainLabelKey(domain.key))}</Text>
                     </View>
                   );
                 })}
@@ -640,13 +667,14 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        <View style={[styles.resultCard, { padding: scaleSize(14), borderRadius: scaleSize(20), backgroundColor: resultColors.bg }]}>          <View style={styles.resultCardHeader}>
-            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: resultColors.bg }]}>
-              <FlagIcon width={scaleSize(28)} height={scaleSize(28)} color={resultColors.fill} />
+        <View style={[styles.resultCard, { padding: scaleSize(14), borderRadius: scaleSize(20) }]}>
+          <View style={styles.resultCardHeader}>
+            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: isMildResult ? resultColors.fill : resultColors.bg }]}>
+              <FlagIcon width={scaleSize(28)} height={scaleSize(28)} color={isMildResult ? '#FFFFFF' : resultColors.fill} />
             </View>
             <View style={styles.resultCardTitles}>
-              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
-              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
+              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10) }]}>{t('screeningResult')}</Text>
+              <Text numberOfLines={3} style={[styles.resultCardResult, { fontSize: scaleSize(18), lineHeight: scaleSize(24) }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.resultCardScore, { fontSize: scaleSize(12) }]}>{score} / {total}</Text>
             </View>
           </View>
@@ -670,7 +698,19 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { fontSize: scaleSize(16) }]}>{t('topInsights')}</Text>
-          {hasHistory && (
+          {hasHistory && prevScoreVal !== undefined ? (
+            <ScoreTrendCard
+              title={t('scoreTrend')}
+              currentScore={currentScoreVal}
+              previousScore={prevScoreVal}
+              history={route?.params?.scoreHistory}
+              previousDate={previousScore?.date}
+              currentDate={date}
+              improvedLabel={t('improved')}
+              needsAttentionLabel={t('needsAttention')}
+            />
+          ) : null}
+          {false && hasHistory && (
             <View style={[styles.trendCard, { padding: scaleSize(16), borderRadius: scaleSize(16), backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E4E8', marginBottom: scaleSize(16) }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scaleSize(16) }}>
                 <Text style={{ fontFamily: 'Inter_700Bold', fontSize: scaleSize(14), color: '#2D2A3A' }}>{t('scoreTrend')}</Text>
@@ -785,8 +825,8 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                         <Circle cx={x1} cy={y1} r={8} stroke={isImproved ? 'rgba(26, 115, 64, 0.2)' : 'rgba(226, 86, 72, 0.2)'} strokeWidth={3} fill='none' />
                         <SvgText x={x0} y={chartH - scaleSize(20)} fill='#9E9EA0' fontSize={scaleSize(10)} textAnchor='middle'>{prevDateStr.split(' ').slice(0, 2).join(' ')}</SvgText>
                         <SvgText x={x1} y={chartH - scaleSize(20)} fill={isImproved ? '#1A7340' : '#E25648'} fontSize={scaleSize(10)} fontFamily='Inter_700Bold' textAnchor='middle'>{date.split(' ').slice(0, 2).join(' ')}</SvgText>
-                        {renderMarker(x0, y0, t('previousScoreLabel'), rawPrev, '#535BD8')}
-                        {renderMarker(x1, y1, t('currentScoreLabel'), rawCurr, isImproved ? '#1A7340' : '#E25648')}
+                        {renderMarker(x0, y0, t('test1'), rawPrev, '#535BD8')}
+                        {renderMarker(x1, y1, t('test2'), rawCurr, isImproved ? '#1A7340' : '#E25648')}
                       </G>
                     );
                   })()}
@@ -877,7 +917,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                     <View style={[styles.domainSmallIconBox, { backgroundColor: domain.color }]}>
                       <Icon width={scaleSize(18)} height={scaleSize(18)} />
                     </View>
-                    <Text style={[styles.domainRowTitle, { fontSize: scaleSize(15) }]}>{domain.label}</Text>
+                    <Text style={[styles.domainRowTitle, { fontSize: scaleSize(15) }]}>{t(getDomainLabelKey(domain.key))}</Text>
                     <View style={styles.domainRowRight}>
                       <View style={[styles.statusBadge, { backgroundColor: domain.statusBg, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(3) }]}>
                         <Text style={[styles.statusBadgeText, { fontSize: scaleSize(10), color: domain.statusColor }]}>{t(getStatusKey(domain.status))}</Text>
@@ -992,17 +1032,17 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
       <View style={[styles.footer, { paddingHorizontal: padding, paddingBottom: scaleSize(16) }]}>
         <Pressable
           onPress={() => generateScreeningReportPDF({ childName, score, total, result, date, screener, domainBreakdown, domainAnswers }, 'download')}
-          style={({ pressed }) => [styles.primaryButton, { height: scaleSize(54), borderRadius: scaleSize(27), opacity: pressed ? 0.9 : 1 }]}
+          style={({ pressed }) => [styles.primaryButton, { minHeight: scaleSize(54), borderRadius: scaleSize(27), opacity: pressed ? 0.9 : 1 }]}
         >
           <DownloadIcon width={scaleSize(20)} height={scaleSize(20)} />
-          <Text style={[styles.primaryButtonText, { fontSize: scaleSize(15) }]}>{t('downloadReport')}</Text>
+          <Text numberOfLines={2} style={[styles.primaryButtonText, { fontSize: scaleSize(15) }]}>{t('downloadReport')}</Text>
         </Pressable>
         <Pressable
           onPress={handleShare}
-          style={({ pressed }) => [styles.secondaryButton, { height: scaleSize(54), borderRadius: scaleSize(27), opacity: pressed ? 0.9 : 1 }]}
+          style={({ pressed }) => [styles.secondaryButton, { minHeight: scaleSize(54), borderRadius: scaleSize(27), opacity: pressed ? 0.9 : 1 }]}
         >
           <ShareIcon width={scaleSize(20)} height={scaleSize(20)} />
-          <Text style={[styles.secondaryButtonText, { fontSize: scaleSize(15) }]}>{t('share')}</Text>
+          <Text numberOfLines={2} style={[styles.secondaryButtonText, { fontSize: scaleSize(15) }]}>{t('share')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -1028,11 +1068,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   titleBlock: {
+    flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
     fontFamily: 'Inter_800ExtraBold',
     color: '#2D2A3A',
+    flexShrink: 1,
   },
   dateRow: {
     flexDirection: 'row',
@@ -1056,7 +1098,7 @@ const styles = StyleSheet.create({
     color: '#6B7180',
   },
   overviewCard: {
-    backgroundColor: '#F3F2FF',
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: '#E2E4E8',
     gap: 8,
@@ -1087,12 +1129,15 @@ const styles = StyleSheet.create({
   scoreRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   scoreLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   scoreLabel: {
     fontFamily: 'Inter_700Bold',
@@ -1113,6 +1158,8 @@ const styles = StyleSheet.create({
   resultBadgeText: {
     fontFamily: 'Inter_700Bold',
     color: '#18182D',
+    flexShrink: 1,
+    textAlign: 'center',
   },
   progressTrack: {
     backgroundColor: '#E2E4E8',
@@ -1158,7 +1205,7 @@ const styles = StyleSheet.create({
   },
   resultCardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
   },
   resultIconBox: {
@@ -1168,6 +1215,8 @@ const styles = StyleSheet.create({
   },
   resultCardTitles: {
     gap: 2,
+    flex: 1,
+    minWidth: 0,
   },
   resultCardEyebrow: {
     fontFamily: 'Inter_700Bold',
@@ -1268,6 +1317,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexWrap: 'wrap',
   },
   domainSmallIconBox: {
     width: 32,
@@ -1278,6 +1328,7 @@ const styles = StyleSheet.create({
   },
   domainRowTitle: {
     flex: 1,
+    minWidth: 80,
     fontFamily: 'Inter_700Bold',
     color: '#2D2A3A',
   },
@@ -1464,7 +1515,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   secondaryButton: {
-    flex: 1,
+    flex: 0.85,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1472,18 +1523,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1.5,
     borderColor: '#E4E7FB',
+    paddingHorizontal: 8,
   },
   secondaryButtonText: {
     fontFamily: 'Inter_700Bold',
     color: '#2D2A3A',
   },
   primaryButton: {
-    flex: 1.8,
+    flex: 1.6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#535BD8',
+    paddingHorizontal: 8,
   },
   primaryButtonText: {
     fontFamily: 'Inter_700Bold',

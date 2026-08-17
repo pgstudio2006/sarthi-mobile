@@ -12,7 +12,7 @@ import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
 import { useScreening } from '../context/ScreeningContext';
-import { getResultColors, getDomainRingColor } from '../utils/reportPdf';
+import { getResultColors, getDomainRingColor, getDomainStatus } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import LogoIcon from '../assets/logo.svg';
 import CloseIcon from '../assets/figma/screen27/Frame-11.svg';
@@ -38,7 +38,7 @@ const DOMAIN_META: Record<string, { Icon: any; color: string; ringColor: string;
   Speech: { Icon: SpeechIcon, color: '#3B8DBD', ringColor: '#6BADD6', label: 'Speech', totalQuestions: 9 },
   Behavior: { Icon: BehaviorIcon, color: '#D66A8E', ringColor: '#F28FAD', label: 'Behaviour', totalQuestions: 6 },
   Sensory: { Icon: SensoryIcon, color: '#F4A261', ringColor: '#F7B37E', label: 'Sensory', totalQuestions: 6 },
-  Cognitive: { Icon: CognitiveIcon, color: '#7D6CB7', ringColor: '#7D6CB7', label: 'Cognitive', totalQuestions: 5 },
+  Cognitive: { Icon: CognitiveIcon, color: '#6D7EAE', ringColor: '#6D7EAE', label: 'Cognitive', totalQuestions: 5 },
 };
 
 const DOMAIN_KEYS = ['Social', 'Emotion', 'Speech', 'Behavior', 'Sensory', 'Cognitive'];
@@ -90,8 +90,13 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
         return statusLower.includes('great') || statusLower.includes('well');
       }
     }
-    if (result === 'Mild Autism' && key === 'Cognitive') return true;
     if (result === 'Normal' || result === 'No Signs of Autism') return true;
+    const answers = (route?.params?.domainAnswers ?? screening?.domainAnswers ?? {})[key] || [];
+    if (answers.length > 0) {
+      const scoreFromAnswers = answers.reduce((sum: number, answer: number) => sum + Number(answer) + 1, 0);
+      const status = getDomainStatus(key, scoreFromAnswers).label;
+      return status === 'Doing great' || status === 'Doing well';
+    }
     return false;
   };
 
@@ -101,6 +106,12 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
       if (bd) {
         return bd.progress;
       }
+    }
+    const answers = (route?.params?.domainAnswers ?? screening?.domainAnswers ?? {})[key] || [];
+    if (answers.length > 0) {
+      const scoreFromAnswers = answers.reduce((sum: number, answer: number) => sum + Number(answer) + 1, 0);
+      const maxScores: Record<string, number> = { Social: 45, Emotion: 25, Speech: 45, Behavior: 35, Sensory: 30, Cognitive: 20 };
+      return scoreFromAnswers / (maxScores[key] ?? 1);
     }
     if (result === 'Mild Autism') {
       const fallbacks: Record<string, number> = {
@@ -124,7 +135,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
       label: meta.label,
       Icon: meta.Icon,
       color: meta.color,
-      ringColor: getDomainRingColor(breakdown?.status, meta.ringColor),
+      ringColor: getDomainRingColor(breakdown?.status, meta.ringColor, breakdown?.progress),
     };
   });
 
@@ -193,7 +204,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
             </View>
             <View style={[styles.resultBadge, { borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), backgroundColor: resultColors.bg, borderColor: resultColors.border }]}>
               <FlagIcon width={scaleSize(14)} height={scaleSize(14)} color={resultColors.fill} />
-              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
+              <Text numberOfLines={2} style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
 
@@ -245,7 +256,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
                           </View>
                         </View>
                       )}
-                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{domain.label}</Text>
+                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{t(({ Social: 'social', Emotion: 'emotional', Speech: 'speech', Behavior: 'behavioural', Sensory: 'sensory', Cognitive: 'cognitive' } as Record<string, string>)[domain.key] || domain.label)}</Text>
                     </View>
                   );
                 })}
@@ -261,7 +272,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
             </View>
             <View style={styles.resultCardTitles}>
               <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
-              <Text style={[styles.resultCardResult, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
+              <Text numberOfLines={3} style={[styles.resultCardResult, { fontSize: scaleSize(18), lineHeight: scaleSize(24), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.resultCardScore, { fontSize: scaleSize(12) }]}>{score} / {total}</Text>
             </View>
           </View>
@@ -433,7 +444,9 @@ const styles = StyleSheet.create({
   scoreRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   scoreLabelRow: {
     flexDirection: 'row',
@@ -455,10 +468,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF8DC',
     borderWidth: 1,
     borderColor: '#BB853E',
+    maxWidth: '58%',
   },
   resultBadgeText: {
     fontFamily: 'Inter_700Bold',
     color: '#18182D',
+    flexShrink: 1,
+    textAlign: 'center',
   },
   progressTrack: {
     backgroundColor: '#E2E4E8',
@@ -504,7 +520,7 @@ const styles = StyleSheet.create({
   },
   resultCardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
   },
   resultIconBox: {
@@ -514,6 +530,8 @@ const styles = StyleSheet.create({
   },
   resultCardTitles: {
     gap: 2,
+    flex: 1,
+    minWidth: 0,
   },
   resultCardEyebrow: {
     fontFamily: 'Inter_700Bold',
