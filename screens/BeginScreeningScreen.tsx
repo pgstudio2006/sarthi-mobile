@@ -38,8 +38,6 @@ export default function BeginScreeningScreen({ navigation }: { navigation: any }
   const childName = activeChild?.name || user?.children?.[0]?.name || t('yourChild');
 
   const childId = activeChild?.id || user?.children?.[0]?.id;
-  const [screeningConsent, setScreeningConsent] = React.useState(false);
-
   useEffect(() => {
     screening.reset();
   }, [screening.reset]);
@@ -66,7 +64,6 @@ export default function BeginScreeningScreen({ navigation }: { navigation: any }
       Alert.alert(t('noChildProfile'), t('createChildProfileFirst'));
       return;
     }
-    if (!screeningConsent) return;
     await startScreening();
   };
 
@@ -117,18 +114,7 @@ export default function BeginScreeningScreen({ navigation }: { navigation: any }
               {screening.error ? (
                 <Text style={[styles.errorText, { fontSize: 12 * scale, marginBottom: 12 * scale }]}>{screening.error}</Text>
               ) : null}
-              <Pressable
-                onPress={() => setScreeningConsent((value) => !value)}
-                style={styles.consentRow}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: screeningConsent }}
-              >
-                <View style={[styles.checkbox, screeningConsent && styles.checkboxChecked]}>
-                  {screeningConsent ? <Text style={styles.checkboxMark}>✓</Text> : null}
-                </View>
-                <Text style={styles.consentText}>{t('consentCheckboxChild')}</Text>
-              </Pressable>
-              <PrimaryButton label={t('startScreening')} onPress={handleStart} disabled={!screeningConsent || screening.loading} />
+              <PrimaryButton label={t('startScreening')} onPress={handleStart} disabled={screening.loading} />
             </View>
           </ScrollView>
         </View>
