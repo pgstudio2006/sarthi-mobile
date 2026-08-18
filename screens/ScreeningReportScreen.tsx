@@ -658,7 +658,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                           </View>
                         </View>
                       )}
-                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{t(getDomainLabelKey(domain.key))}</Text>
+                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{domain.label}</Text>
                     </View>
                   );
                 })}
@@ -917,7 +917,7 @@ export default function ScreeningReportScreen({ navigation, route }: any) {
                     <View style={[styles.domainSmallIconBox, { backgroundColor: domain.color }]}>
                       <Icon width={scaleSize(18)} height={scaleSize(18)} />
                     </View>
-                    <Text style={[styles.domainRowTitle, { fontSize: scaleSize(15) }]}>{t(getDomainLabelKey(domain.key))}</Text>
+                    <Text style={[styles.domainRowTitle, { fontSize: scaleSize(15) }]}>{domain.label}</Text>
                     <View style={styles.domainRowRight}>
                       <View style={[styles.statusBadge, { backgroundColor: domain.statusBg, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(3) }]}>
                         <Text style={[styles.statusBadgeText, { fontSize: scaleSize(10), color: domain.statusColor }]}>{t(getStatusKey(domain.status))}</Text>

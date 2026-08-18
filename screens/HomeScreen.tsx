@@ -769,7 +769,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                     <View style={[styles.domainIcon, { backgroundColor: domain.color, borderRadius: scaleSize(12), width: scaleSize(42), height: scaleSize(42) }]}>
                       <Icon width={scaleSize(30)} height={scaleSize(30)} />
                     </View>
-                    <Text style={[styles.domainText, { fontSize: scaleSize(13) }]}>{t(DOMAIN_LABEL_KEYS[domain.name] || domain.name)}</Text>
+                    <Text style={[styles.domainText, { fontSize: scaleSize(13) }]}>{domain.name}</Text>
                   </View>
                 );
               })}
@@ -1035,7 +1035,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                               </>
                             )}
                           </View>
-                        <Text style={[styles.domainLabel, { fontSize: scaleSize(14), marginTop: scaleSize(4), color: '#3B3B3E', fontFamily: 'Inter_700Bold' }]}>{t(DOMAIN_LABEL_KEYS[domain.key] || domain.label)}</Text>
+                        <Text style={[styles.domainLabel, { fontSize: scaleSize(14), marginTop: scaleSize(4), color: '#3B3B3E', fontFamily: 'Inter_700Bold' }]}>{domain.label}</Text>
                         </View>
                       );
                     })}
@@ -1076,7 +1076,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                               </>
                             )}
                           </View>
-                          <Text style={[styles.domainLabel, { fontSize: scaleSize(14), marginTop: scaleSize(4), color: '#3B3B3E', fontFamily: 'Inter_700Bold' }]}>{t(DOMAIN_LABEL_KEYS[domain.key] || domain.label)}</Text>
+                          <Text style={[styles.domainLabel, { fontSize: scaleSize(14), marginTop: scaleSize(4), color: '#3B3B3E', fontFamily: 'Inter_700Bold' }]}>{domain.label}</Text>
                         </View>
                       );
                     })}
@@ -1088,7 +1088,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                   style={({ pressed }) => [
                     styles.progressPrimaryCta,
                     {
-                      height: scaleSize(48),
+                      minHeight: scaleSize(64),
                       borderRadius: 0,
                       marginTop: scaleSize(16),
                       marginHorizontal: scaleSize(-28),
@@ -1096,7 +1096,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                     }
                   ]}
                 >
-                  <Text style={{ fontFamily: 'Inter_700Bold', color: '#FFF', fontSize: scaleSize(16) }}>
+                  <Text numberOfLines={2} style={{ fontFamily: 'Inter_700Bold', color: '#FFF', fontSize: scaleSize(16), lineHeight: scaleSize(21), textAlign: 'center', flexShrink: 1 }}>
                     {t('viewDetailedReport')}
                   </Text>
                 </Pressable>
@@ -1810,7 +1810,7 @@ const styles = StyleSheet.create({
   historyCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E4E7FB' },
   historyTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   historyScoreRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
-  historyScoreLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'wrap' },
+  historyScoreLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'nowrap' },
   viewDetailsBtn: { backgroundColor: '#535BD8' },
   viewDetailsBtnText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   overviewCard: { backgroundColor: '#FFFFFF', gap: 8 },
@@ -1824,7 +1824,7 @@ const styles = StyleSheet.create({
   scoreLabel: { fontFamily: 'Inter_700Bold', color: '#6B7180' },
   scoreValue: { fontFamily: 'Inter_800ExtraBold', color: '#18182D' },
   scoreAsterisk: { fontFamily: 'Inter_800ExtraBold', color: '#6B7180' },
-  resultBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '58%' },
+  resultBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '58%', flexShrink: 0 },
   resultBadgeText: { fontFamily: 'Inter_700Bold', flexShrink: 1, textAlign: 'center' },
   progressTrack: { backgroundColor: '#E2E4E8' },
   domainGrid: {},

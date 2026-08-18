@@ -256,7 +256,7 @@ export default function ScreeningCompletionScreen({ navigation, route }: any) {
                           </View>
                         </View>
                       )}
-                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{t(({ Social: 'social', Emotion: 'emotional', Speech: 'speech', Behavior: 'behavioural', Sensory: 'sensory', Cognitive: 'cognitive' } as Record<string, string>)[domain.key] || domain.label)}</Text>
+                      <Text style={[styles.domainLabel, { fontSize: scaleSize(12), marginTop: scaleSize(6) }]}>{domain.label}</Text>
                     </View>
                   );
                 })}
