@@ -1142,9 +1142,9 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                               <Text style={[styles.scoreValue, { fontSize: scaleSize(18), fontFamily: 'Inter_800ExtraBold', color: '#18182D' }]}>
                                 {session.score} / {session.total}
                               </Text>
-                              <View style={[styles.resultBadge, { backgroundColor: sessionColors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(5) }]}>
+                              <View style={[styles.resultBadge, { width: scaleSize(190), maxWidth: '65%', backgroundColor: sessionColors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(5) }]}>
                                 <ResultFlagIcon width={scaleSize(12)} height={scaleSize(12)} color={sessionColors.text} />
-                                <Text style={[styles.resultBadgeText, { fontSize: scaleSize(11), color: sessionColors.text, marginLeft: scaleSize(4), fontFamily: 'Inter_700Bold' }]}>
+                                <Text numberOfLines={1} style={[styles.resultBadgeText, { fontSize: scaleSize(11), color: sessionColors.text, marginLeft: scaleSize(4), fontFamily: 'Inter_700Bold' }]}>
                                   {t(getShortResultLabelKey(session.result))}
                                 </Text>
                               </View>
