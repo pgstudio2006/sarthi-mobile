@@ -130,7 +130,7 @@ export default function HeroCard({ onPress, onContinue, onStartNew, childName, p
                   },
                 ]}
               >
-                <Text style={[styles.ctaText, { fontSize: scaleSize(16) }]}>{t('continueScreening')}</Text>
+                <Text numberOfLines={2} style={[styles.ctaText, { fontSize: scaleSize(16) }]}>{t('continueScreening')}</Text>
                 <Text style={[styles.ctaArrow, { fontSize: scaleSize(20) }]}>→</Text>
               </Pressable>
               <Pressable
@@ -146,7 +146,7 @@ export default function HeroCard({ onPress, onContinue, onStartNew, childName, p
                   },
                 ]}
               >
-                <Text style={[styles.ctaOutlineText, { fontSize: scaleSize(16), color: disabled ? '#B6B8BD' : '#6B7180' }]}>{t('startNewScreening')}</Text>
+                <Text numberOfLines={2} style={[styles.ctaOutlineText, { fontSize: scaleSize(16), color: disabled ? '#B6B8BD' : '#6B7180' }]}>{t('startNewScreening')}</Text>
               </Pressable>
             </View>
           </View>
@@ -191,7 +191,7 @@ export default function HeroCard({ onPress, onContinue, onStartNew, childName, p
                 },
               ]}
             >
-              <Text style={[styles.ctaText, { fontSize: scaleSize(16) }]}>{t('startScreeningFree')}</Text>
+              <Text numberOfLines={2} style={[styles.ctaText, { fontSize: scaleSize(16) }]}>{t('startScreeningFree')}</Text>
             </Pressable>
           </View>
         )}
@@ -278,6 +278,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    rowGap: 6,
   },
   metaItem: {
     flexDirection: 'row',
@@ -306,6 +308,9 @@ const styles = StyleSheet.create({
   ctaText: {
     fontFamily: 'Inter_700Bold',
     color: colors.white,
+    flexShrink: 1,
+    textAlign: 'center',
+    lineHeight: 21,
   },
   ctaArrow: {
     fontFamily: 'Inter_700Bold',
@@ -323,5 +328,8 @@ const styles = StyleSheet.create({
   ctaOutlineText: {
     fontFamily: 'Inter_600SemiBold',
     color: '#6B7180',
+    flexShrink: 1,
+    textAlign: 'center',
+    lineHeight: 21,
   },
 });

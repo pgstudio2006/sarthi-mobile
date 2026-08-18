@@ -1156,7 +1156,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                                 { borderRadius: scaleSize(20), paddingHorizontal: scaleSize(14), paddingVertical: scaleSize(8), opacity: pressed ? 0.85 : 1 },
                               ]}
                             >
-                              <Text style={[styles.viewDetailsBtnText, { fontSize: scaleSize(12) }]}>{t('viewDetails')}</Text>
+                              <Text numberOfLines={2} style={[styles.viewDetailsBtnText, { fontSize: scaleSize(12) }]}>{t('viewDetails')}</Text>
                             </Pressable>
                           </View>
                         </View>
@@ -1832,7 +1832,7 @@ const styles = StyleSheet.create({
   domainItem: { alignItems: 'center' },
   domainCircle: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
   checkmarkWrap: { position: 'absolute', backgroundColor: colors.white, justifyContent: 'center', alignItems: 'center' },
-  domainLabel: { fontFamily: 'Inter_600SemiBold', color: '#3B3B3E' },
+  domainLabel: { fontFamily: 'Inter_600SemiBold', color: '#3B3B3E', maxWidth: '100%', textAlign: 'center', flexShrink: 1 },
   disclaimer: { fontFamily: 'Inter_400Regular', color: '#6B7180' },
   learnMoreCard: { backgroundColor: '#F8F8FF', borderWidth: 1, borderColor: '#E2E4E8' },
   learnMoreHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
