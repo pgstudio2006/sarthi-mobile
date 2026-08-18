@@ -17,10 +17,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "care.sarthi.app"
+      "bundleIdentifier": "care.sarthi.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "We use Face ID to authenticate you securely."
+      }
     },
     "android": {
       "package": "care.sarthi.app",
+      "permissions": ["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"],
       "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -38,7 +42,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "460d4658-0fef-45dc-830d-cef453b0d52e"
+        "projectId": "a7b3c1e5-5e35-42b1-927c-064b8416a7ee"
       }
     }
   }
