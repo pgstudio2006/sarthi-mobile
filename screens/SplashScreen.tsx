@@ -36,7 +36,7 @@ export default function SplashScreen({ navigation }: { navigation: any }) {
         if (storedToken) {
           next = 'Home';
         } else if (onboardingValue === 'true') {
-          next = 'PhoneAuth';
+          next = 'Home';
         } else if (selectedLanguage) {
           next = 'AutismScreening';
         }

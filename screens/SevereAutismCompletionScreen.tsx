@@ -38,7 +38,7 @@ const DOMAIN_META: Record<string, { Icon: any; color: string; ringColor: string;
   Speech: { Icon: SpeechIcon, color: '#3B8DBD', ringColor: '#6BADD6', label: 'Speech', totalQuestions: 9 },
   Behavior: { Icon: BehaviorIcon, color: '#D66A8E', ringColor: '#F28FAD', label: 'Behaviour', totalQuestions: 6 },
   Sensory: { Icon: SensoryIcon, color: '#F4A261', ringColor: '#F7B37E', label: 'Sensory', totalQuestions: 6 },
-  Cognitive: { Icon: CognitiveIcon, color: '#7D6CB7', ringColor: '#7D6CB7', label: 'Cognitive', totalQuestions: 5 },
+  Cognitive: { Icon: CognitiveIcon, color: '#6D7EAE', ringColor: '#6D7EAE', label: 'Cognitive', totalQuestions: 5 },
 };
 
 const DOMAIN_KEYS = ['Social', 'Emotion', 'Speech', 'Behavior', 'Sensory', 'Cognitive'];
@@ -119,7 +119,7 @@ export default function SevereAutismCompletionScreen({ navigation, route }: any)
       label: meta.label,
       Icon: meta.Icon,
       color: meta.color,
-      ringColor: getDomainRingColor(breakdown?.status, meta.ringColor),
+      ringColor: getDomainRingColor(breakdown?.status, meta.ringColor, breakdown?.progress),
     };
   });
 
@@ -451,6 +451,7 @@ const styles = StyleSheet.create({
   },
   resultBadgeText: {
     fontFamily: 'Inter_700Bold',
+    flexShrink: 1,
   },
   progressTrack: {
     backgroundColor: '#E2E4E8',

@@ -367,7 +367,7 @@ export default function CognitiveScreeningScreen({ navigation }: { navigation: a
             {submitting ? (
               <ActivityIndicator color={colors.white} size="small" />
             ) : (
-              <Text style={[styles.continueText, { fontSize: scaleFont(16) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{t('finishScreening')}</Text>
+              <Text style={[styles.continueText, { fontSize: scaleFont(16) }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{t('finishScreening')}</Text>
             )}
           </Pressable>
         </View>

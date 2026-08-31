@@ -36,7 +36,7 @@ const DOMAINS = [
   { key: 'Speech', label: 'Speech', Icon: SpeechIcon, color: '#3B8DBD', progress: 1, ringColor: '#6BADD6' },
   { key: 'Behavior', label: 'Behaviour', Icon: BehaviorIcon, color: '#D66A8E', progress: 1, ringColor: '#F28FAD' },
   { key: 'Sensory', label: 'Sensory', Icon: SensoryIcon, color: '#F4A261', progress: 1, ringColor: '#F7B37E' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#7D6CB7', progress: 1, ringColor: '#7D6CB7' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#6D7EAE', progress: 1, ringColor: '#6D7EAE' },
 ];
 
 export default function NoAutismCompletionScreen({ navigation, route }: any) {
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   scoreLabel: { fontFamily: 'Inter_700Bold', color: '#6B7180' },
   scoreValue: { fontFamily: 'Inter_800ExtraBold', color: '#18182D' },
   resultBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  resultBadgeText: { fontFamily: 'Inter_700Bold' },
+  resultBadgeText: { fontFamily: 'Inter_700Bold', flexShrink: 1 },
   progressTrack: { backgroundColor: '#E2E4E8' },
   progressFill: {},
   disclaimer: { fontFamily: 'Inter_400Regular', color: '#6B7180' },

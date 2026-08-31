@@ -10,22 +10,21 @@ import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
+import AvatarIcon from '../assets/figma/screen25/profile-parent-yellow.svg';
 import AvatarBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
-import ProfilePersonIcon from '../components/ProfilePersonIcon';
-import GlobeIcon from '../components/GlobeIcon';
-import CloseIcon from '../assets/figma/screen26/Frame-32.svg';
-import LogoutIcon from '../assets/figma/screen25/Frame-31.svg';
+import CloseIcon from '../assets/figma/screen25/screen41-close.svg';
+import LogoutIcon from '../assets/figma/screen25/screen41-logout.svg';
 import EditIcon from '../assets/figma/screen25/stylus_note.svg';
 import PremiumIcon from '../assets/figma/screen25/Frame-31.svg';
-import ChevronIcon from '../assets/figma/screen25/Frame-31.svg';
+import ChevronIcon from '../assets/figma/screen25/screen41-chevron.svg';
 import EditChildIcon from '../assets/figma/screen25/stylus_note.svg';
 import AvatarSmallIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
 import AvatarSmallBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
-import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
-import CompanionIcon from '../assets/figma/screen25/Frame-29.svg';
+import PersonIcon from '../assets/figma/screen25/Frame-31.svg';
+import CompanionIcon from '../assets/figma/screen25/Frame-31.svg';
 import SubscriptionIcon from '../assets/figma/screen25/Frame-31.svg';
 import NotificationIcon from '../assets/figma/screen25/Frame-31.svg';
-import LanguageIcon from '../components/GlobeIcon';
+import LanguageIcon from '../assets/figma/screen25/screen41-language.svg';
 import AppearanceIcon from '../assets/figma/screen25/Frame-31.svg';
 import SoundIcon from '../assets/figma/screen25/Frame-31.svg';
 import PrivacyIcon from '../assets/figma/screen25/Frame-31.svg';
@@ -45,12 +44,13 @@ type SectionItemProps = {
   subtitle?: string;
   rightText?: string;
   rightIcon?: React.ReactNode;
+  onPress?: () => void;
 };
 
-function SectionItem({ icon, iconBg, title, subtitle, rightText, rightIcon }: SectionItemProps) {
+function SectionItem({ icon, iconBg, title, subtitle, rightText, rightIcon, onPress }: SectionItemProps) {
   const { scaleSize } = useResponsive();
   return (
-    <View style={[sectionStyles.row, { height: scaleSize(60) }]}>
+    <Pressable onPress={onPress} disabled={!onPress} style={[sectionStyles.row, { height: scaleSize(60) }]}>
       <View style={[sectionStyles.rowLeft, { paddingLeft: scaleSize(16), gap: scaleSize(12) }]}>
         <View style={[sectionStyles.iconBox, { backgroundColor: iconBg, width: scaleSize(26), height: scaleSize(26), borderRadius: scaleSize(8) }]}>
           {icon}
@@ -68,7 +68,7 @@ function SectionItem({ icon, iconBg, title, subtitle, rightText, rightIcon }: Se
           {rightIcon}
         </View>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -79,7 +79,7 @@ function Divider() {
 function SectionLabel({ text, top }: { text: string; top?: number }) {
   const { scaleSize } = useResponsive();
   return (
-    <Text style={[sectionStyles.sectionLabel, { fontSize: scaleSize(10), marginTop: top ?? 0, paddingHorizontal: scaleSize(24) }]}>
+    <Text style={[sectionStyles.sectionLabel, { fontSize: scaleSize(10), top, paddingHorizontal: scaleSize(24) }]}>
       {text}
     </Text>
   );
@@ -88,7 +88,7 @@ function SectionLabel({ text, top }: { text: string; top?: number }) {
 function SectionCard({ children, top }: { children: React.ReactNode; top: number }) {
   const { scaleSize } = useResponsive();
   return (
-    <View style={[sectionStyles.card, { marginTop: top, marginHorizontal: scaleSize(20), borderRadius: scaleSize(16) }]}>
+    <View style={[sectionStyles.card, { top, marginHorizontal: scaleSize(20), borderRadius: scaleSize(16) }]}>
       {children}
     </View>
   );
@@ -139,8 +139,9 @@ export default function ProfileSettingsScreen({ navigation }: { navigation: any 
 
             <View style={[styles.profileContent, { top: scaleSize(16), left: scaleSize(16) }]}>
               <View style={styles.profileRow}>
-                <View style={[styles.avatarCircle, styles.profileAvatarCircle, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(28) }]}>
-                  <ProfilePersonIcon size={scaleSize(32)} />
+                <View style={[styles.avatarCircle, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(28), backgroundColor: '#FFF0C4' }]}>
+                  <AvatarIcon width={scaleSize(32)} height={scaleSize(32)} />
+                  <View style={[styles.avatarStatusDot, { width: scaleSize(16), height: scaleSize(16), borderRadius: scaleSize(8), right: scaleSize(-2), bottom: scaleSize(-2) }]} />
                 </View>
                 <View style={styles.profileText}>
                   <Text style={[styles.profileName, { fontSize: scaleSize(17) }]}>{caregiver?.name || 'Dhaval Gandhi'}</Text>
@@ -196,7 +197,7 @@ export default function ProfileSettingsScreen({ navigation }: { navigation: any 
               );
             })}
 
-            <Pressable onPress={() => navigation.navigate('CreateProfile', { nextRoute: 'Home' })} style={[sectionStyles.addChildBtn, { borderRadius: scaleSize(14), paddingVertical: scaleSize(11), paddingHorizontal: scaleSize(12) }]}>
+            <Pressable style={[sectionStyles.addChildBtn, { borderRadius: scaleSize(14), paddingVertical: scaleSize(11), paddingHorizontal: scaleSize(12) }]}>
               <View style={[sectionStyles.addChildIcon, { width: scaleSize(28), height: scaleSize(28), borderRadius: scaleSize(14) }]}>
                 <PlusIcon width={scaleSize(14)} height={scaleSize(14)} color="#5963E1" />
               </View>
@@ -241,7 +242,7 @@ export default function ProfileSettingsScreen({ navigation }: { navigation: any 
             />
             <Divider />
             <SectionItem
-              icon={<LanguageIcon size={scaleSize(22)} />}
+              icon={<LanguageIcon width={scaleSize(14)} height={scaleSize(14)} />}
               iconBg="#EDFFFD"
               title="Language"
               rightText="English"
@@ -272,6 +273,7 @@ export default function ProfileSettingsScreen({ navigation }: { navigation: any 
               iconBg="#EDFFFD"
               title="Data & privacy"
               rightIcon={<ChevronIcon width={scaleSize(24)} height={scaleSize(24)} />}
+              onPress={() => navigation.navigate('DataPrivacy')}
             />
             <Divider />
             <SectionItem
@@ -423,9 +425,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
-  profileAvatarCircle: {
-    backgroundColor: '#FFF1C7',
+  avatarStatusDot: {
+    position: 'absolute',
+    backgroundColor: '#6BCB5B',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   profileText: {
     gap: 3,
@@ -571,6 +577,7 @@ const sectionStyles = StyleSheet.create({
   childName: {
     fontFamily: 'Inter_800ExtraBold',
     color: '#18182D',
+    flexShrink: 1,
   },
   activeBadge: {
     backgroundColor: '#EDFFFD',

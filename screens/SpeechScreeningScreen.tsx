@@ -337,7 +337,7 @@ export default function SpeechScreeningScreen({ navigation }: { navigation: any 
           ]}
           disabled={!allAnswered}
         >
-          <Text style={[styles.continueText, { fontSize: scaleFont(16) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{t('nextSection')}</Text>
+          <Text style={[styles.continueText, { fontSize: scaleFont(16) }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{t('nextSection')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

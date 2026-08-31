@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
 import { useScreening } from '../context/ScreeningContext';
-import { getResultColors, getDomainRingColor } from '../utils/reportPdf';
+import { getDomainRingColor } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import LogoIcon from '../assets/logo.svg';
 import CloseIcon from '../assets/figma/screen27/Frame-11.svg';
@@ -38,7 +38,7 @@ const DOMAINS = [
   { key: 'Speech',    label: 'Speech',    Icon: SpeechIcon,    color: '#3B8DBD', ringColor: '#6BADD6' },
   { key: 'Behavior',  label: 'Behaviour', Icon: BehaviorIcon,  color: '#D66A8E', ringColor: '#F28FAD' },
   { key: 'Sensory',   label: 'Sensory',   Icon: SensoryIcon,   color: '#F4A261', ringColor: '#F7B37E' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#7D6CB7', ringColor: '#7D6CB7' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#6D7EAE', ringColor: '#6D7EAE' },
 ];
 
 export default function ModerateAutismCompletionScreen({ navigation, route }: any) {
@@ -78,8 +78,12 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
     ? 'severeResultDescription'
     : 'mildResultDescription';
 
-  // Moderate Autism colours — orange palette
-  const resultColors = useMemo(() => getResultColors(result), [result]);
+  const resultColors = {
+    text: '#2D2A3A',
+    bg: '#FDEEEA',
+    border: '#EF6B61',
+    fill: '#E8564A',
+  };
 
   const isDomainOnTrack = (key: string) => {
     if (domainBreakdown) {
@@ -126,7 +130,7 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
     const breakdown = domainBreakdown?.find((item: any) => item.key === domain.key);
     return {
       ...domain,
-      ringColor: getDomainRingColor(breakdown?.status, domain.ringColor),
+      ringColor: getDomainRingColor(breakdown?.status, domain.ringColor, breakdown?.progress),
     };
   });
 
@@ -260,11 +264,11 @@ export default function ModerateAutismCompletionScreen({ navigation, route }: an
         {/* Result card */}
         <View style={[styles.resultCard, { padding: scaleSize(16), borderRadius: scaleSize(20), backgroundColor: resultColors.bg }]}>
           <View style={styles.resultCardHeader}>
-            <View style={[styles.resultIconBox, { width: scaleSize(56), height: scaleSize(56), borderRadius: scaleSize(14), backgroundColor: resultColors.fill }]}>
-              <ResultFlagIcon width={scaleSize(28)} height={scaleSize(28)} color="#FFF" />
+            <View style={[styles.resultIconBox, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(12), backgroundColor: resultColors.fill }]}>
+              <ResultFlagIcon width={scaleSize(24)} height={scaleSize(24)} color="#FFF" />
             </View>
             <View style={styles.resultCardTitles}>
-              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
+              <Text style={[styles.resultCardEyebrow, { fontSize: scaleSize(10), color: resultColors.fill }]}>{t('screeningResult')}</Text>
               <Text style={[styles.resultCardResult, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.resultCardScore, { fontSize: scaleSize(12) }]}>{score} / {total}</Text>
             </View>
@@ -355,7 +359,7 @@ const styles = StyleSheet.create({
   scoreLabel: { fontFamily: 'Inter_700Bold', color: '#6B7180' },
   scoreValue: { fontFamily: 'Inter_800ExtraBold', color: '#18182D' },
   resultBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  resultBadgeText: { fontFamily: 'Inter_700Bold' },
+  resultBadgeText: { fontFamily: 'Inter_700Bold', flexShrink: 1 },
   progressTrack: { backgroundColor: '#E2E4E8' },
   disclaimer: { fontFamily: 'Inter_400Regular', color: '#6B7180' },
   domainGrid: {},

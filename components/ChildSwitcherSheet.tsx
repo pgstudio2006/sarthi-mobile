@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -17,7 +17,8 @@ import AvatarBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
 import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 import PlusIcon from '../assets/figma/screen25/add_2.svg';
 import CloseIcon from '../assets/figma/screen26/Frame-32.svg';
-import EditIcon from '../assets/figma/screen25/stylus_note.svg';
+import DeleteAccountSheet from './DeleteAccountSheet';
+import { deleteChildProfile } from '../api/client';
 
 type ChildSwitcherSheetProps = {
   visible: boolean;
@@ -25,6 +26,7 @@ type ChildSwitcherSheetProps = {
   onSelectChild: (child: ChildProfile) => void;
   onAddChild: () => void;
   onEditChild: (child: ChildProfile) => void;
+  onDeleteChild?: (child: ChildProfile) => void;
 };
 
 export default function ChildSwitcherSheet({
@@ -33,13 +35,16 @@ export default function ChildSwitcherSheet({
   onSelectChild,
   onAddChild,
   onEditChild,
+  onDeleteChild,
 }: ChildSwitcherSheetProps) {
-  const { scaleSize, padding } = useResponsive();
+  const { scaleSize, padding, height } = useResponsive();
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
-  const { user, activeChildId, setActiveChildId } = useAuth();
+  const { user, token, activeChildId, setActiveChildId, signIn } = useAuth();
   const children = user?.children || [];
   const caregiver = user?.caregiverProfile;
+  const [childToDelete, setChildToDelete] = useState<ChildProfile | null>(null);
+  const sheetHeight = Math.min(height * 0.9, scaleSize(320 + (children.length + 1) * 88));
 
   const formatAge = (ageInMonths?: number) => {
     if (!ageInMonths) return '';
@@ -54,6 +59,17 @@ export default function ChildSwitcherSheet({
     onClose();
   };
 
+  const handleDeleteChild = async () => {
+    if (!childToDelete || !user || !token) return;
+    const result = await deleteChildProfile(childToDelete.id);
+    if (!result.success) return;
+    const remainingChildren = user.children.filter((child) => child.id !== childToDelete.id);
+    await signIn(token, { ...user, children: remainingChildren });
+    if (activeChildId === childToDelete.id) await setActiveChildId(remainingChildren[0]?.id || null);
+    onDeleteChild?.(childToDelete);
+    setChildToDelete(null);
+  };
+
   return (
     <Modal
       transparent
@@ -62,7 +78,7 @@ export default function ChildSwitcherSheet({
       onRequestClose={onClose}
     >
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { maxHeight: '90%' }]}>
+      <View style={[styles.sheet, { height: sheetHeight, maxHeight: height * 0.9 }]}>
         <View style={[styles.handle, { width: scaleSize(40), height: scaleSize(4), borderRadius: scaleSize(999) }]} />
         <View style={styles.headerRow}>
           <Text style={[styles.title, { fontSize: scaleSize(18) }]}>{t('addChildren')}</Text>
@@ -85,7 +101,7 @@ export default function ChildSwitcherSheet({
         </View>
 
         <ScrollView
-          style={styles.childrenScroll}
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: scaleSize(24) }}
         >
@@ -119,14 +135,14 @@ export default function ChildSwitcherSheet({
                       <Text style={[styles.childAge, { fontSize: scaleSize(12) }]}>{formatAge(child.ageInMonths)}</Text>
                     </View>
                   </Pressable>
-                  <Pressable
-                    onPress={() => onEditChild(child)}
-                    style={styles.editDetailsBtn}
-                    hitSlop={scaleSize(8)}
-                  >
-                    <EditIcon width={scaleSize(14)} height={scaleSize(14)} />
-                    <Text style={[styles.editDetailsText, { fontSize: scaleSize(11), maxWidth: scaleSize(120) }]} numberOfLines={2}>{t('editDetails')}</Text>
-                  </Pressable>
+                  <View style={styles.childActions}>
+                    <Pressable onPress={() => onEditChild(child)} style={styles.editLink} hitSlop={scaleSize(8)}>
+                      <Text style={[styles.editLinkText, { fontSize: scaleSize(11) }]} numberOfLines={1}>{t('editDetails')}</Text>
+                    </Pressable>
+                    <Pressable onPress={() => setChildToDelete(child)} style={styles.deleteLink} hitSlop={scaleSize(6)}>
+                      <Text style={[styles.deleteLinkText, { fontSize: scaleSize(11) }]} numberOfLines={1}>Delete</Text>
+                    </Pressable>
+                  </View>
                 </View>
               );
             })}
@@ -143,6 +159,14 @@ export default function ChildSwitcherSheet({
           </View>
         </ScrollView>
       </View>
+      <DeleteAccountSheet
+        visible={childToDelete !== null}
+        title={childToDelete ? `Delete ${childToDelete.name}'s profile?` : 'Delete child profile?'}
+        body="This permanently removes this child profile, screening responses, reports, and history. This action cannot be undone."
+        confirmLabel="Yes, delete child"
+        onCancel={() => setChildToDelete(null)}
+        onConfirm={handleDeleteChild}
+      />
     </Modal>
   );
 }
@@ -163,10 +187,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 32,
     maxHeight: '78%',
-  },
-  childrenScroll: {
-    flexGrow: 0,
-    flexShrink: 1,
   },
   handle: {
     backgroundColor: '#E2E4E8',
@@ -253,16 +273,26 @@ const styles = StyleSheet.create({
   caregiverInfo: { flex: 1, gap: 3 },
   caregiverName: { fontFamily: 'Inter_700Bold', color: colors.mainBlack },
   caregiverMeta: { fontFamily: 'Inter_400Regular', color: colors.grey },
-  editDetailsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 2,
-    alignSelf: 'flex-start',
+  childActions: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 10,
+    marginTop: 4,
   },
-  editDetailsText: {
+  editLink: {
+    alignSelf: 'flex-end',
+  },
+  editLinkText: {
     fontFamily: 'Inter_700Bold',
     color: colors.primaryBlue,
+    textDecorationLine: 'underline',
+  },
+  deleteLink: {
+    alignSelf: 'flex-end',
+  },
+  deleteLinkText: {
+    fontFamily: 'Inter_500Medium',
+    color: colors.grey,
     textDecorationLine: 'underline',
   },
   addChildCard: {

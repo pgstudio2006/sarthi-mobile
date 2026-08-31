@@ -14,7 +14,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getDomainRingColor, getDomainStatus, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
 import ProgressRing from '../components/ProgressRing';
 import BackArrow from '../assets/figma/screen18/Vector.svg';
 import CalendarIcon from '../assets/figma/screen28/calendar_month.svg';
@@ -29,6 +29,7 @@ import ResultFlagIcon from '../assets/figma/screen28/Frame-10.svg';
 import PersonIcon from '../assets/figma/screen27/Frame-7.svg';
 import { useReportFAQs } from '../utils/useReportFAQs';
 import { toIsaaLabel } from '../utils/domainQuestions';
+import ScoreTrendCard from '../components/ScoreTrendCard';
 
 import SocialIcon from '../assets/figma/screen28/Frame-7.svg';
 import EmotionIcon from '../assets/figma/screen28/Frame-5.svg';
@@ -43,7 +44,7 @@ const DOMAINS_OVERVIEW = [
   { key: 'Speech',    label: 'Speech',    Icon: SpeechIcon,    color: '#3B8DBD', ringColor: '#6BADD6' },
   { key: 'Behavior',  label: 'Behaviour', Icon: BehaviorIcon,  color: '#D66A8E', ringColor: '#F28FAD' },
   { key: 'Sensory',   label: 'Sensory',   Icon: SensoryIcon,   color: '#F4A261', ringColor: '#F7B37E' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#7D6CB7', ringColor: '#7D6CB7' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#6D7EAE', ringColor: '#6D7EAE' },
 ];
 
 const INSIGHTS = [
@@ -172,7 +173,7 @@ const DEVELOPMENT_DOMAINS_STATIC = [
     status: 'Needs extra support',
     statusColor: '#E25648',
     statusBg: '#FDF0EB',
-    color: '#7D6CB7',
+    color: '#6D7EAE',
     Icon: CognitiveIcon,
     score: '33/45',
     strengths: [
@@ -242,7 +243,7 @@ const DOMAIN_QUESTIONS: Record<string, string[]> = {
 };
 
 export default function ModerateAutismReportScreen({ navigation, route }: any) {
-  const { scaleSize, padding } = useResponsive();
+  const { width, scaleSize, padding } = useResponsive();
   const { t, language } = useTranslation();
   const screening = useScreening();
   const childName      = route?.params?.childName     ?? '';
@@ -288,8 +289,12 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
     return lower.replace(/\s+/g, '');
   };
 
-  // Moderate Autism colours
-  const resultColors = useMemo(() => getResultColors(result), [result]);
+  const resultColors = {
+    text: '#2D2A3A',
+    bg: '#FDEEEA',
+    border: '#EF6B61',
+    fill: '#E8564A',
+  };
 
   // Dynamic answers source: route params or context
   const contextAnswers = screening?.domainAnswers || {};
@@ -323,7 +328,7 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
     DOMAINS_OVERVIEW.map((d) => {
       if (domainBreakdown) {
         const bd = domainBreakdown.find((b: any) => b.key === d.key);
-        if (bd) return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor) };
+        if (bd) return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor, bd?.progress) };
       }
       return { ...d, progress: getDomainProgress(d.key) };
     }),
@@ -342,11 +347,16 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
         if (bd) {
           scoreStr       = `${bd.score ?? 0}/${bd.maxScore ?? 45}`;
           statusStr      = bd.status ?? d.status;
-          const statusColors = getStatusColors(statusStr, { text: d.statusColor, bg: d.statusBg });
-          statusColorStr = statusColors.text;
-          statusBgStr = statusColors.bg;
+          statusColorStr = bd.statusColor ?? d.statusColor;
+          statusBgStr    = bd.statusBg ?? d.statusBg;
         }
       }
+
+      const scoreValue = Number(domainBreakdown?.find((item: any) => item.key === d.key)?.score);
+      if (Number.isFinite(scoreValue)) statusStr = getDomainStatus(d.key, scoreValue).label;
+      const statusColors = getStatusColors(statusStr);
+      statusColorStr = statusColors.color;
+      statusBgStr = statusColors.bg;
 
       const questions = DOMAIN_QUESTIONS[d.key] || [];
       const answers   = domainAnswers[d.key] || [];
@@ -380,6 +390,10 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
   [domainBreakdown, domainAnswers]);
 
   const dynamicInsights = useMemo(() => buildDomainTopInsights(domainBreakdown), [domainBreakdown]);
+  const insightCardWidth = width - scaleSize(32) - scaleSize(48);
+  const insightGap = scaleSize(12);
+  const insightSnap = insightCardWidth + insightGap;
+  const [activeInsight, setActiveInsight] = useState(0);
 
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [domainTab, setDomainTab] = useState<Record<string, 'attention' | 'strengths'>>(() => {
@@ -443,8 +457,9 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
       >
         {/* Overview card */}
         <View style={[styles.overviewCard, { padding: scaleSize(16), borderRadius: scaleSize(24), borderWidth: 1, borderColor: 'rgba(83, 91, 216, 0.21)' }]}>
-          <Text style={[styles.overviewTitle, { fontSize: scaleSize(16) }]}>{t('screeningOverviewForName', { name: childName })}</Text>
-          <View style={styles.overviewMetaRow}>
+          <View style={[styles.overviewHeader, { paddingBottom: scaleSize(12) }]}>
+            <Text style={[styles.overviewTitle, { fontSize: scaleSize(16) }]}>{t('screeningOverviewForName', { name: childName })}</Text>
+            <View style={styles.overviewMetaRow}>
             <View style={styles.metaItem}>
               <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} color="#6B7180" />
               <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12), marginLeft: scaleSize(6) }]}>{date}</Text>
@@ -453,20 +468,19 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
               <PersonIcon width={scaleSize(16)} height={scaleSize(16)} />
               <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12), marginLeft: scaleSize(6) }]}>{screener}</Text>
             </View>
+            </View>
           </View>
 
           {/* Score row */}
           <View style={styles.scoreRow}>
-            <View>
-              <View style={styles.scoreLabelRow}>
-                <Text style={[styles.scoreLabel, { fontSize: scaleSize(12) }]}>{t('score')} : </Text>
-                <Text style={[styles.scoreValue, { fontSize: scaleSize(20) }]}>{score} / {total}</Text>
-                <Text style={[styles.scoreAsterisk, { fontSize: scaleSize(14) }]}> *</Text>
-              </View>
-              <View style={[styles.resultBadge, { backgroundColor: resultColors.bg, borderColor: resultColors.border, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), marginTop: scaleSize(6) }]}>
+            <View style={styles.scoreLabelRow}>
+              <Text style={[styles.scoreLabel, { fontSize: scaleSize(12) }]}>{t('score')} : </Text>
+              <Text style={[styles.scoreValue, { fontSize: scaleSize(20) }]}>{score} / {total}</Text>
+              <Text style={[styles.scoreAsterisk, { fontSize: scaleSize(14) }]}> *</Text>
+            </View>
+            <View style={[styles.resultBadge, { backgroundColor: resultColors.bg, borderWidth: 1, borderColor: resultColors.border, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6) }]}>
                 <ResultFlagIcon width={scaleSize(14)} height={scaleSize(14)} color={resultColors.fill} />
-                <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text, marginLeft: scaleSize(4) }]}>{t(resultLabelKey)}</Text>
-              </View>
+              <Text style={[styles.resultBadgeText, { fontSize: scaleSize(12), color: resultColors.text, marginLeft: scaleSize(4) }]}>{t(resultLabelKey)}</Text>
             </View>
           </View>
 
@@ -532,7 +546,7 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
               <ResultFlagIcon width={scaleSize(24)} height={scaleSize(24)} color="#FFF" />
             </View>
             <View style={{ marginLeft: scaleSize(12), flex: 1 }}>
-              <Text style={[styles.summaryEyebrow, { fontSize: scaleSize(10), color: resultColors.text }]}>{t('screeningResult')}</Text>
+              <Text style={[styles.summaryEyebrow, { fontSize: scaleSize(10), color: resultColors.fill }]}>{t('screeningResult')}</Text>
               <Text style={[styles.summaryTitle, { fontSize: scaleSize(18), color: resultColors.text }]}>{t(resultLabelKey)}</Text>
               <Text style={[styles.summaryScore, { fontSize: scaleSize(12), marginTop: scaleSize(2) }]}>{score} / {total}</Text>
             </View>
@@ -554,32 +568,65 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
           </View>
         </View>
 
+        {isRepeat && previousScore?.totalScore != null ? (
+          <ScoreTrendCard
+            title={t('scoreTrend')}
+            currentScore={Number(score)}
+            previousScore={Number(previousScore.totalScore)}
+            history={route?.params?.scoreHistory}
+            previousDate={previousScore.date}
+            currentDate={date}
+            improvedLabel={t('improved')}
+            needsAttentionLabel={t('needsAttention')}
+          />
+        ) : null}
+
         {/* Top Insights */}
         <Text style={[styles.sectionTitle, { fontSize: scaleSize(16) }]}>{t('topInsights')}</Text>
-        {dynamicInsights.map((insight) => {
-          const { Icon } = insight;
-          return (
-            <View key={insight.title} style={[styles.insightCard, { padding: scaleSize(14), borderRadius: scaleSize(16) }]}>
-              <View style={styles.insightHeader}>
-                <View style={[styles.insightIconBox, { width: scaleSize(44), height: scaleSize(44), borderRadius: scaleSize(22), backgroundColor: insight.statusBg }]}>
-                  <Icon width={scaleSize(24)} height={scaleSize(24)} />
-                </View>
-                <View style={{ marginLeft: scaleSize(12), flex: 1 }}>
-                  <Text style={[styles.insightTitle, { fontSize: scaleSize(13), color: '#6B7180' }]}>{insight.title}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: insight.statusBg, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(3), alignSelf: 'flex-start', marginTop: scaleSize(4) }]}>
-                    <Text style={[styles.statusBadgeText, { fontSize: scaleSize(10), color: insight.statusColor }]}>{t(getStatusKey(insight.status))}</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={insightSnap}
+          contentContainerStyle={{ gap: insightGap, paddingRight: scaleSize(16) }}
+          onMomentumScrollEnd={(event) => {
+            const index = Math.round(event.nativeEvent.contentOffset.x / insightSnap);
+            setActiveInsight(Math.max(0, Math.min(dynamicInsights.length - 1, index)));
+          }}
+        >
+          {dynamicInsights.map((insight, index) => {
+            const { Icon } = insight;
+            return (
+              <View key={`${insight.title}-${index}`} style={[styles.insightCard, { width: insightCardWidth, padding: scaleSize(14), borderRadius: scaleSize(16) }]}>
+                <View style={[styles.insightHeader, { gap: scaleSize(12) }]}>
+                  <View style={[styles.insightIconBox, { width: scaleSize(48), height: scaleSize(48), borderRadius: scaleSize(13), backgroundColor: insight.color }]}>
+                    <Icon width={scaleSize(24)} height={scaleSize(24)} />
+                  </View>
+                  <View style={{ flex: 1, gap: scaleSize(4) }}>
+                    <Text style={[styles.insightTitle, { fontSize: scaleSize(14) }]}>{insight.title}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: insight.statusBg, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(3), alignSelf: 'flex-start' }]}>
+                      <Text style={[styles.statusBadgeText, { fontSize: scaleSize(10), color: insight.statusColor }]}>{t(getStatusKey(insight.status))}</Text>
+                    </View>
                   </View>
                 </View>
+                <Text style={[styles.insightHeading, { fontSize: scaleSize(16), lineHeight: scaleSize(21), marginTop: scaleSize(16) }]}>{insight.heading}</Text>
+                <View style={{ marginTop: scaleSize(8), gap: scaleSize(4) }}>
+                  {insight.bullets.map((bullet, bulletIndex) => (
+                    <View key={bulletIndex} style={styles.bulletRow}>
+                      <View style={[styles.bullet, { width: scaleSize(6), height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: insight.statusColor }]} />
+                      <Text style={[styles.bulletText, { fontSize: scaleSize(12), lineHeight: scaleSize(18) }]}>{bullet}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <Text style={[styles.insightHeading, { fontSize: scaleSize(14), color: '#18182D', marginTop: scaleSize(10) }]}>{insight.heading}</Text>
-              <View style={{ marginTop: scaleSize(8), gap: scaleSize(4) }}>
-                {insight.bullets.map((b, i) => (
-                  <Text key={i} style={[styles.bullet, { fontSize: scaleSize(12) }]}>• {b}</Text>
-                ))}
-              </View>
-            </View>
-          );
-        })}
+            );
+          })}
+        </ScrollView>
+        <View style={styles.dotsRow}>
+          {dynamicInsights.map((_, index) => (
+            <View key={index} style={[styles.dot, index === activeInsight && styles.dotActive, { width: scaleSize(8), height: scaleSize(8), borderRadius: scaleSize(4) }]} />
+          ))}
+        </View>
 
         {/* Development by Domain */}
         <Text style={[styles.sectionTitle, { fontSize: scaleSize(16), marginTop: scaleSize(8) }]}>{t('developmentByDomain')}</Text>
@@ -711,8 +758,9 @@ export default function ModerateAutismReportScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontFamily: 'Inter_700Bold', color: '#18182D' },
-  overviewCard: { backgroundColor: '#F3F2FF', gap: 8 },
+  headerTitle: { fontFamily: 'Inter_700Bold', color: '#18182D', flex: 1, textAlign: 'center' },
+  overviewCard: { backgroundColor: colors.white, gap: 8 },
+  overviewHeader: { borderBottomWidth: 1, borderBottomColor: '#E2E4E8', gap: 10 },
   overviewTitle: { fontFamily: 'Inter_700Bold', color: '#2D2A3A' },
   overviewMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   metaItem: { flexDirection: 'row', alignItems: 'center' },
@@ -723,7 +771,7 @@ const styles = StyleSheet.create({
   scoreValue: { fontFamily: 'Inter_800ExtraBold', color: '#18182D' },
   scoreAsterisk: { fontFamily: 'Inter_800ExtraBold', color: '#6B7180' },
   resultBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
-  resultBadgeText: { fontFamily: 'Inter_700Bold' },
+  resultBadgeText: { fontFamily: 'Inter_700Bold', flexShrink: 1 },
   progressTrack: { backgroundColor: '#E2E4E8' },
   domainGrid: {},
   domainRow: { flexDirection: 'row', justifyContent: 'space-around' },
@@ -740,19 +788,23 @@ const styles = StyleSheet.create({
   summaryScore: { fontFamily: 'Inter_700Bold', color: '#6B7180' },
   summaryDivider: { height: 1 },
   summaryBody: { fontFamily: 'Inter_400Regular', color: '#454545', lineHeight: 18 },
-  infoCard: { backgroundColor: '#F3F2FF', flexDirection: 'row', alignItems: 'center' },
+  infoCard: { backgroundColor: colors.white, flexDirection: 'row', alignItems: 'center' },
   infoTitle: { fontFamily: 'Inter_700Bold', color: '#535BD8' },
   infoBody: { fontFamily: 'Inter_400Regular', color: '#6B7180', lineHeight: 18 },
   sectionTitle: { fontFamily: 'Inter_800ExtraBold', color: '#18182D' },
   sectionSubtitle: { fontFamily: 'Inter_400Regular', color: '#6B7180' },
-  insightCard: { backgroundColor: '#F8F8FF', borderWidth: 1, borderColor: '#E2E4E8' },
+  insightCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: '#E2E4E8' },
   insightHeader: { flexDirection: 'row', alignItems: 'center' },
   insightIconBox: { justifyContent: 'center', alignItems: 'center' },
   insightTitle: { fontFamily: 'Inter_600SemiBold' },
   insightHeading: { fontFamily: 'Inter_700Bold' },
   statusBadge: { justifyContent: 'center', alignItems: 'center' },
   statusBadgeText: { fontFamily: 'Inter_700Bold' },
-  bullet: { fontFamily: 'Inter_400Regular', color: '#454545', lineHeight: 18 },
+  bullet: { backgroundColor: '#6B7180' },
+  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  dotsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4, marginTop: 4 },
+  dot: { backgroundColor: '#D5D7DE' },
+  dotActive: { width: 34, backgroundColor: '#6B7180' },
   domainCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', overflow: 'hidden' },
   domainCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   domainCardIconBox: { justifyContent: 'center', alignItems: 'center' },

@@ -231,6 +231,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
   const screening = useScreening();
   const child = activeChild;
   const caregiver = user?.caregiverProfile;
+  const isLoggedIn = Boolean(user);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
@@ -726,10 +727,14 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
 
   const handleStartNew = useCallback(() => {
     setPlusMenuVisible(false);
+    if (!isLoggedIn) {
+      navigation.navigate('PhoneAuth');
+      return;
+    }
     screening.reset();
     navigation.setParams({ progress: undefined });
     navigation.navigate('BeginScreening');
-  }, [navigation, screening]);
+  }, [navigation, screening, isLoggedIn]);
 
   const renderOnboarding = () => (
     <>
@@ -854,28 +859,30 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
             setShowBottomStartCta(y > firstFoldBottom);
           }}
         >
-          <View style={[styles.topBar, { paddingHorizontal: padding, paddingTop: scaleSize(16) }]}>
-            <Pressable style={styles.profileBlock} onPress={() => setChildSwitcherVisible(true)} hitSlop={scaleSize(8)}>
-              <View style={[styles.avatarCircle, { width: scaleSize(46), height: scaleSize(46), borderRadius: scaleSize(23) }]}>
-                {child?.gender?.toLowerCase() === 'male' ? (
-                  <AvatarBoyIcon width={scaleSize(30)} height={scaleSize(30)} />
-                ) : (
-                  <AvatarGirlIcon width={scaleSize(30)} height={scaleSize(30)} />
-                )}
-              </View>
-              <View>
-                <View style={styles.nameRow}>
-                  <Text style={[styles.name, { fontSize: scaleSize(15) }]}>{child?.name || t('yourChild')}</Text>
-                  <Text style={[styles.chevron, { fontSize: scaleSize(16) }]}>▾</Text>
+          {isLoggedIn && (
+            <View style={[styles.topBar, { paddingHorizontal: padding, paddingTop: scaleSize(16) }]}>
+              <Pressable style={styles.profileBlock} onPress={() => setChildSwitcherVisible(true)} hitSlop={scaleSize(8)}>
+                <View style={[styles.avatarCircle, { width: scaleSize(46), height: scaleSize(46), borderRadius: scaleSize(23) }]}>
+                  {child?.gender?.toLowerCase() === 'male' ? (
+                    <AvatarBoyIcon width={scaleSize(30)} height={scaleSize(30)} />
+                  ) : (
+                    <AvatarGirlIcon width={scaleSize(30)} height={scaleSize(30)} />
+                  )}
                 </View>
-                <Text style={[styles.subtitle, { fontSize: scaleSize(12) }]}>{child?.ageInMonths ? `${Math.floor(child.ageInMonths / 12)} ${dateLocale.years} ${child.ageInMonths % 12} ${dateLocale.months}` : ''}</Text>
-              </View>
-            </Pressable>
+                <View>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.name, { fontSize: scaleSize(15) }]}>{child?.name || t('yourChild')}</Text>
+                    <Text style={[styles.chevron, { fontSize: scaleSize(16) }]}>▾</Text>
+                  </View>
+                  <Text style={[styles.subtitle, { fontSize: scaleSize(12) }]}>{child?.ageInMonths ? `${Math.floor(child.ageInMonths / 12)} ${dateLocale.years} ${child.ageInMonths % 12} ${dateLocale.months}` : ''}</Text>
+                </View>
+              </Pressable>
 
-            <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuButton} hitSlop={scaleSize(10)}>
-              <MenuIconSvg width={scaleSize(22)} height={scaleSize(22)} />
-            </Pressable>
-          </View>
+              <Pressable onPress={() => setDrawerOpen(true)} style={styles.menuButton} hitSlop={scaleSize(10)}>
+                <MenuIconSvg width={scaleSize(22)} height={scaleSize(22)} />
+              </Pressable>
+            </View>
+          )}
 
           {isChildTooYoung && (
             <View style={[styles.tooYoungBanner, { marginHorizontal: padding, marginTop: scaleSize(16), padding: scaleSize(16), borderRadius: scaleSize(16), gap: scaleSize(12) }]}>
@@ -1142,7 +1149,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                               <Text style={[styles.scoreValue, { fontSize: scaleSize(18), fontFamily: 'Inter_800ExtraBold', color: '#18182D' }]}>
                                 {session.score} / {session.total}
                               </Text>
-                              <View style={[styles.resultBadge, { width: scaleSize(190), maxWidth: '65%', backgroundColor: sessionColors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(5) }]}>
+                              <View style={[styles.resultBadge, { maxWidth: '100%', backgroundColor: sessionColors.bg, borderRadius: scaleSize(16), paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(5) }]}>
                                 <ResultFlagIcon width={scaleSize(12)} height={scaleSize(12)} color={sessionColors.text} />
                                 <Text numberOfLines={1} style={[styles.resultBadgeText, { fontSize: scaleSize(11), color: sessionColors.text, marginLeft: scaleSize(4), fontFamily: 'Inter_700Bold' }]}>
                                   {t(getShortResultLabelKey(session.result))}
@@ -1219,7 +1226,7 @@ export default function HomeScreen({ navigation, route }: { navigation: any; rou
                 onContinue={continueProgress ? handleContinue : undefined}
                 onStartNew={handleStartNew}
                 progress={continueProgress}
-                childName={child?.name || t('yourChild')}
+                childName={child?.name}
                 style={{ marginHorizontal: padding }}
                 disabled={isChildTooYoung}
               />
@@ -1809,8 +1816,8 @@ const styles = StyleSheet.create({
   rescreenCtaText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   historyCard: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E4E7FB' },
   historyTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  historyScoreRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
-  historyScoreLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'nowrap' },
+  historyScoreRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
+  historyScoreLeft: { flexDirection: 'column', alignItems: 'flex-start', gap: 8, flex: 1, minWidth: 0 },
   viewDetailsBtn: { backgroundColor: '#535BD8' },
   viewDetailsBtnText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   overviewCard: { backgroundColor: '#FFFFFF', gap: 8 },

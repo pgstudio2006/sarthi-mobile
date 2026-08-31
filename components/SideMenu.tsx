@@ -13,7 +13,7 @@ import { colors } from '../theme/colors';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import AvatarIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
+import AvatarIcon from '../assets/figma/screen25/profile-parent-yellow.svg';
 import CloseIcon from '../assets/figma/screen26/Frame-32.svg';
 import LanguageIcon from '../assets/figma/home/Frame 455.svg';
 
@@ -91,13 +91,21 @@ export default function SideMenu({ visible, onClose, onLanguage }: SideMenuProps
               </View>
 
               <View style={styles.profileCard}>
-                <AvatarIcon width={56} height={56} />
+                <View style={styles.profileAvatar}>
+                  <AvatarIcon width={32} height={32} />
+                  <View style={styles.profileStatusDot} />
+                </View>
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{caregiver?.name || 'User'}</Text>
                   <Text style={styles.profileRole}>{(caregiver?.role || 'PARENT').toUpperCase()}</Text>
                   <Text style={styles.profileEmail}>{caregiver?.email || ''}</Text>
                 </View>
               </View>
+
+              <Pressable style={styles.privacyRow} onPress={() => { onClose(); navigation.navigate('DataPrivacy'); }}>
+                <Text style={styles.privacyLabel}>Data & Privacy</Text>
+                <Text style={styles.privacyChevron}>›</Text>
+              </Pressable>
 
               <Pressable
                 style={styles.logoutBtn}
@@ -178,6 +186,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  profileAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFF0C4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  profileStatusDot: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#6BCB5B',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
   profileInfo: {
     flex: 1,
     gap: 3,
@@ -196,6 +224,30 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_500Medium',
     fontSize: 11,
     color: 'rgba(255,255,255,0.9)',
+  },
+  privacyRow: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 116,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E4E8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  privacyLabel: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 14,
+    color: colors.mainBlack,
+  },
+  privacyChevron: {
+    fontSize: 24,
+    color: '#9CA3AF',
   },
   logoutBtn: {
     position: 'absolute',

@@ -198,6 +198,16 @@ export async function verifyOtp(
   });
 }
 
+export async function verifyWidgetOtp(
+  phone: string,
+  accessToken: string
+): Promise<ApiResponse<VerifyOtpResponse>> {
+  return request('/auth/verify-widget', {
+    method: 'POST',
+    body: JSON.stringify({ phone, accessToken }),
+  });
+}
+
 export type User = {
   id: string;
   phone: string;
@@ -233,6 +243,10 @@ export async function getMe(): Promise<ApiResponse<{ user: User }>> {
   return request('/users/me', { method: 'GET' });
 }
 
+export async function deleteAccount(): Promise<ApiResponse<{ success: true }>> {
+  return request('/users/me', { method: 'DELETE' });
+}
+
 export type CreateCaregiverProfileInput = {
   name: string;
   role: string;
@@ -241,6 +255,7 @@ export type CreateCaregiverProfileInput = {
   relation?: string;
   speciality?: string;
   institution?: string;
+  consentGiven: true;
 };
 
 export type LocationSuggestion = {
@@ -273,7 +288,7 @@ export type CreateChildProfileInput = {
 };
 
 export async function createChildProfile(
-  input: CreateChildProfileInput
+  input: CreateChildProfileInput & { consentGiven: true }
 ): Promise<ApiResponse<{ child: ChildProfile }>> {
   return request('/profile/child', {
     method: 'POST',
@@ -292,6 +307,10 @@ export type UpdateChildProfileInput = {
   birthContext?: string;
   ageInMonths?: number;
 };
+
+export async function deleteChildProfile(childId: string): Promise<ApiResponse<{ success: true }>> {
+  return request(`/profile/child/${childId}`, { method: 'DELETE' });
+}
 
 export async function updateChildProfile(
   childId: string,

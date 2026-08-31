@@ -28,7 +28,7 @@ interface HeroCardProps {
 export default function HeroCard({ onPress, onContinue, onStartNew, childName, progress, style, disabled = false }: HeroCardProps) {
   const { scaleSize } = useResponsive();
   const { t } = useTranslation();
-  const displayName = childName || t('yourChild');
+  const displayName = childName?.trim() || '';
   const progressPercent = progress ? (progress.totalAnswered / progress.totalQuestions) * 100 : 0;
 
   return (
@@ -159,11 +159,11 @@ export default function HeroCard({ onPress, onContinue, onStartNew, childName, p
               </View>
 
               <Text style={[styles.title, { fontSize: scaleSize(28), lineHeight: scaleSize(34), marginTop: scaleSize(18) }]}>
-                {t('beginScreening', { name: displayName })}
+                {displayName ? t('beginScreening', { name: displayName }) : t('beginScreeningGeneric')}
               </Text>
 
               <Text style={[styles.subtitle, { fontSize: scaleSize(14), lineHeight: scaleSize(20), marginTop: scaleSize(12) }]}>
-                {t('understandChild', { name: displayName })}
+                {displayName ? t('understandChild', { name: displayName }) : t('understandChildGeneric')}
               </Text>
 
               <View style={[styles.metaRow, { marginTop: scaleSize(14), gap: scaleSize(25) }]}>

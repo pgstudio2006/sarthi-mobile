@@ -16,7 +16,8 @@ import PrimaryButton from '../components/PrimaryButton';
 import PrivacyInfoCard from '../components/PrivacyInfoCard';
 import ScreenLayout from '../components/ScreenLayout';
 import { useResponsive } from '../utils/responsive';
-import { requestOtp, verifyOtp, User } from '../api/client';
+import { requestOtp, verifyOtp, verifyWidgetOtp, User } from '../api/client';
+import { OTPWidget } from '@msg91comm/sendotp-react-native';
 import { useAuth } from '../context/AuthContext';
 import Illustration from '../assets/screen7/illustration.svg';
 
@@ -32,7 +33,7 @@ export default function OTPVerificationScreen({
   route,
 }: {
   navigation: any;
-  route?: { params?: { phoneNumber?: string; devOtp?: string } };
+  route?: { params?: { phoneNumber?: string; devOtp?: string; reqId?: string; accessToken?: string } };
 }) {
   const { t } = useTranslation();
   const { width, scaleSize, scaleFont } = useResponsive();
@@ -41,32 +42,49 @@ export default function OTPVerificationScreen({
   const digits = rawPhone.replace(/\D/g, '').slice(-10);
   const apiPhone = `+91${digits}`;
   const displayPhone = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+  const initialReqId = route?.params?.reqId;
+  const widgetAccessToken = route?.params?.accessToken;
 
   const [otp, setOtp] = useState(route?.params?.devOtp ?? '');
+  const [reqId, setReqId] = useState(initialReqId);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleContinue = async () => {
-    if (otp.length !== 6) return;
+    if (!widgetAccessToken && otp.length !== 6) return;
     setLoading(true);
     setError('');
-    const result = await verifyOtp(apiPhone, otp);
+
+    let result;
+    if (widgetAccessToken) {
+      result = await verifyWidgetOtp(apiPhone, widgetAccessToken);
+    } else if (reqId) {
+      try {
+        const response = await OTPWidget.verifyOTP({ reqId, otp });
+        const accessToken = response?.['access-token'] || response?.message;
+        if (response?.type?.toLowerCase?.() === 'success' && accessToken) {
+          result = await verifyWidgetOtp(apiPhone, accessToken);
+        } else {
+          setLoading(false);
+          setError(response?.message || t('invalidOtp'));
+          return;
+        }
+      } catch (err) {
+        setLoading(false);
+        setError(err instanceof Error ? err.message : t('invalidOtp'));
+        return;
+      }
+    } else {
+      result = await verifyOtp(apiPhone, otp);
+    }
+
     setLoading(false);
-    if (!result.success && !__DEV__) {
+    if (!result.success) {
       setError(result.error);
       return;
     }
-    const token = result.success ? result.data.token : 'dev-token';
-    const user: User = result.success
-      ? result.data.user
-      : {
-          id: 'dev-user',
-          phone: apiPhone,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          caregiverProfile: null,
-          children: [],
-        };
+    const token = result.data.token;
+    const user: User = result.data.user;
     await signIn(token, user);
     if (user.caregiverProfile && user.children.length > 0) {
       navigation.replace('Home');
@@ -80,6 +98,22 @@ export default function OTPVerificationScreen({
   const handleResend = async () => {
     setOtp('');
     setError('');
+
+    if (reqId) {
+      try {
+        const response = await OTPWidget.retryOTP({ reqId, retryChannel: 11 });
+        if (response?.type?.toLowerCase?.() !== 'success') {
+          setError(response?.message || t('failedResendOtp'));
+        } else if (response.message) {
+          // MSG91 returns the new request id in `message` after a retry.
+          setReqId(response.message);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('failedResendOtp'));
+      }
+      return;
+    }
+
     const result = await requestOtp(apiPhone);
     if (!result.success) {
       setError(result.error);
@@ -102,7 +136,7 @@ export default function OTPVerificationScreen({
       <PrimaryButton
         label={loading ? t('verifying') : t('continue')}
         onPress={handleContinue}
-        disabled={otp.length !== 6 || loading}
+        disabled={(!widgetAccessToken && otp.length !== 6) || loading}
       />
     </View>
   );

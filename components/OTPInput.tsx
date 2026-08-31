@@ -70,6 +70,9 @@ export default function OTPInput({
         style={styles.hiddenInput}
         textContentType="oneTimeCode"
         autoComplete="sms-otp"
+        importantForAutofill="yes"
+        autoCorrect={false}
+        spellCheck={false}
         returnKeyType="done"
       />
     </Pressable>

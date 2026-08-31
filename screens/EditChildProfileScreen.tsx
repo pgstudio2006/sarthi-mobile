@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useAuth } from '../context/AuthContext';
-import { updateChildProfile, ChildProfile } from '../api/client';
+import { updateChildProfile, deleteChildProfile, ChildProfile } from '../api/client';
 import ChoiceGrid from '../components/ChoiceGrid';
 import DatePickerModal from '../components/DatePickerModal';
 import ChevronLeftIcon from '../components/ChevronLeftIcon';
@@ -28,6 +28,8 @@ import AvatarGirlIcon from '../assets/figma/screen16/image 9 [Vectorized].svg';
 import AvatarBoyIcon from '../assets/figma/screen16/image 8 [Vectorized].svg';
 import CalendarMonthIcon from '../assets/screen15/calendarMonth.svg';
 import EditIcon from '../assets/figma/screen25/stylus_note.svg';
+import DeleteIcon from '../assets/figma/screen25/screen45-delete.svg';
+import DeleteAccountSheet from '../components/DeleteAccountSheet';
 
 const GENDERS = ['Male', 'Female', 'Prefer not to say'];
 
@@ -45,6 +47,7 @@ export default function EditChildProfileScreen({ navigation, route }: { navigati
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [deleteVisible, setDeleteVisible] = useState(false);
 
   const dobDisplay = formatISODateDisplay(dob);
   const ageLabel = calculateAgeLabel(dob);
@@ -77,6 +80,18 @@ export default function EditChildProfileScreen({ navigation, route }: { navigati
 
   const goBack = () => {
     if (navigation.canGoBack?.()) navigation.goBack();
+  };
+
+  const handleDelete = async () => {
+    if (!child || !user || !token) return;
+    const result = await deleteChildProfile(child.id);
+    if (!result.success) {
+      setError(result.error);
+      setDeleteVisible(false);
+      return;
+    }
+    await signIn(token, { ...user, children: user.children.filter((item) => item.id !== child.id) });
+    navigation.navigate('Home');
   };
 
   if (!child) {
@@ -117,8 +132,13 @@ export default function EditChildProfileScreen({ navigation, route }: { navigati
                 <Text style={[styles.ageBadgeText, { fontSize: scaleSize(11) }]}>{ageLabel}</Text>
               </View>
             </View>
-            <View style={[styles.editBadge, { width: scaleSize(32), height: scaleSize(32), borderRadius: scaleSize(16), backgroundColor: '#5963E1' }]}>
-              <EditIcon width={scaleSize(16)} height={scaleSize(16)} />
+            <View style={styles.headerChildActions}>
+              <View style={[styles.editBadge, { width: scaleSize(32), height: scaleSize(32), borderRadius: scaleSize(16), backgroundColor: '#5963E1' }]}>
+                <EditIcon width={scaleSize(16)} height={scaleSize(16)} />
+              </View>
+              <Pressable onPress={() => setDeleteVisible(true)} style={[styles.deleteBadge, { width: scaleSize(32), height: scaleSize(32), borderRadius: scaleSize(16) }]}>
+                <DeleteIcon width={scaleSize(20)} height={scaleSize(20)} />
+              </Pressable>
             </View>
           </View>
         </View>
@@ -184,6 +204,15 @@ export default function EditChildProfileScreen({ navigation, route }: { navigati
           {submitting ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={[styles.saveButtonText, { fontSize: scaleSize(16) }]}>Save</Text>}
         </Pressable>
       </View>
+
+      <DeleteAccountSheet
+        visible={deleteVisible}
+        title={`Delete ${child?.name || 'child'}'s profile?`}
+        body="This permanently removes this child profile, screening responses, reports, and history. This action cannot be undone."
+        confirmLabel="Yes, delete child"
+        onCancel={() => setDeleteVisible(false)}
+        onConfirm={handleDelete}
+      />
 
       <DatePickerModal
         visible={showDatePicker}
@@ -269,6 +298,16 @@ const styles = StyleSheet.create({
     color: colors.primaryBlue,
   },
   editBadge: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerChildActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  deleteBadge: {
+    backgroundColor: '#FFF1EF',
     justifyContent: 'center',
     alignItems: 'center',
   },

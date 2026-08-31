@@ -11,7 +11,10 @@ export function useReportFAQs(input: ReportFAQInput, childId?: string | null, la
     if (!childId) return;
     getAiFaqs(childId, language).then((res) => {
       if (res.success && res.data.faqs.length === 10 && res.data.mode !== 'generic' && res.data.mode !== 'local') {
-        setApiFAQs(res.data.faqs);
+        const validFaqs = res.data.faqs.filter((faq) =>
+          faq.title?.trim() && faq.body?.trim() && !faq.title.startsWith('faq.') && !faq.body.startsWith('faq.')
+        );
+        if (validFaqs.length === 10) setApiFAQs(validFaqs);
       }
     });
   }, [childId, language]);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { OTPWidget } from '@msg91comm/sendotp-react-native';
 import { useFonts } from 'expo-font';
 import * as NavigationBar from 'expo-navigation-bar';
 import {
@@ -33,6 +34,7 @@ import CognitiveScreeningScreen from './screens/CognitiveScreeningScreen';
 import SaveExitScreen from './screens/SaveExitScreen';
 import HomeScreen from './screens/HomeScreen';
 import ProfileSettingsScreen from './screens/ProfileSettingsScreen';
+import DataPrivacyScreen from './screens/DataPrivacyScreen';
 import EditChildProfileScreen from './screens/EditChildProfileScreen';
 import ScreeningCompletionScreen from './screens/ScreeningCompletionScreen';
 import ScreeningReportScreen from './screens/ScreeningReportScreen';
@@ -66,6 +68,12 @@ export default function App() {
     NavigationBar.setBackgroundColorAsync('#FFFFFF').catch(() => {});
     NavigationBar.setButtonStyleAsync('dark').catch(() => {});
     initSounds().catch(() => {});
+
+    const widgetId = process.env.EXPO_PUBLIC_MSG91_WIDGET_ID;
+    const tokenAuth = process.env.EXPO_PUBLIC_MSG91_TOKEN_AUTH;
+    if (widgetId && tokenAuth) {
+      OTPWidget.initializeWidget(widgetId, tokenAuth).catch(() => {});
+    }
   }, []);
 
   if (!fontsLoaded || !authReady) {
@@ -108,6 +116,7 @@ export default function App() {
           <Stack.Screen name="SaveExit" component={SaveExitScreen} options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="ProfileSettings" component={ProfileSettingsScreen} />
+          <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} />
           <Stack.Screen name="EditChildProfile" component={EditChildProfileScreen} />
           <Stack.Screen name="ScreeningCompletion" component={ScreeningCompletionScreen} />
           <Stack.Screen name="ScreeningReport" component={ScreeningReportScreen} />
@@ -116,7 +125,10 @@ export default function App() {
           <Stack.Screen name="ModerateAutismCompletion" component={ModerateAutismCompletionScreen} />
           <Stack.Screen name="ModerateAutismReport" component={ModerateAutismReportScreen} />
           <Stack.Screen name="SevereAutismCompletion" component={SevereAutismCompletionScreen} />
-          <Stack.Screen name="SevereAutismReport" component={SevereAutismReportScreen} />
+          <Stack.Screen
+            name="SevereAutismReport"
+            component={SevereAutismReportScreen}
+          />
         </Stack.Navigator>
       </NavigationContainer>
           </ScreeningProvider>

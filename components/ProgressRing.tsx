@@ -12,9 +12,10 @@ export default function ProgressRing({ size, strokeWidth = 4, progress, color }:
   const clamped = Math.min(1, Math.max(0, progress));
   if (clamped <= 0) return null;
 
+  const ringProgress = color === '#E25648' ? 1 : clamped;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - clamped);
+  const offset = circumference * (1 - ringProgress);
   const center = size / 2;
 
   return (

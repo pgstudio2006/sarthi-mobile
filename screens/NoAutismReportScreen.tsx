@@ -15,7 +15,7 @@ import { useScreening } from '../context/ScreeningContext';
 import { colors } from '../theme/colors';
 import { useResponsive } from '../utils/responsive';
 import { useTranslation } from '../i18n';
-import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
+import { generateScreeningReportPDF, getResultColors, getDomainRingColor, getDomainStatus, getStatusColors, buildDomainTopInsights } from '../utils/reportPdf';
 import { useReportFAQs } from '../utils/useReportFAQs';
 import { toIsaaLabel } from '../utils/domainQuestions';
 import Svg, { Line, Circle, Path, Rect, Text as SvgText, G } from 'react-native-svg';
@@ -44,7 +44,7 @@ const DOMAINS_OVERVIEW = [
   { key: 'Speech', label: 'Speech', Icon: SpeechIcon, color: '#3B8DBD', progress: 1, ringColor: '#6BADD6' },
   { key: 'Behavior', label: 'Behaviour', Icon: BehaviorIcon, color: '#D66A8E', progress: 1, ringColor: '#F28FAD' },
   { key: 'Sensory', label: 'Sensory', Icon: SensoryIcon, color: '#F4A261', progress: 1, ringColor: '#F7B37E' },
-  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#7D6CB7', progress: 1, ringColor: '#7D6CB7' },
+  { key: 'Cognitive', label: 'Cognitive', Icon: CognitiveIcon, color: '#6D7EAE', progress: 1, ringColor: '#6D7EAE' },
 ];
 
 const INSIGHTS = [
@@ -169,7 +169,7 @@ const DEVELOPMENT_DOMAINS = [
     status: 'Doing great',
     statusColor: '#1A7340',
     statusBg: '#E8F7F0',
-    color: '#7D6CB7',
+    color: '#6D7EAE',
     Icon: CognitiveIcon,
     strengths: [
       'Good problem solving for familiar tasks',
@@ -358,7 +358,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
     if (domainBreakdown) {
       const bd = domainBreakdown.find((b: any) => b.key === d.key);
       if (bd) {
-        return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor) };
+        return { ...d, progress: bd.progress, ringColor: getDomainRingColor(bd?.status, d.ringColor, bd?.progress) };
       }
     }
     return d;
@@ -375,11 +375,16 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
       if (bd) {
         scoreStr = `${bd.score ?? 0}/${bd.maxScore ?? 45}`;
         statusStr = bd.status ?? d.status;
-        const statusColors = getStatusColors(statusStr, { text: d.statusColor, bg: d.statusBg });
-        statusColorStr = statusColors.text;
-        statusBgStr = statusColors.bg;
+        statusColorStr = bd.statusColor ?? d.statusColor;
+        statusBgStr = bd.statusBg ?? d.statusBg;
       }
     }
+
+    const scoreValue = Number(domainBreakdown?.find((item: any) => item.key === d.key)?.score);
+    if (Number.isFinite(scoreValue)) statusStr = getDomainStatus(d.key, scoreValue).label;
+    const statusColors = getStatusColors(statusStr);
+    statusColorStr = statusColors.color;
+    statusBgStr = statusColors.bg;
 
     // Now compute dynamic attention and strengths lists:
     const questions = DOMAIN_QUESTIONS[d.key] || [];
@@ -477,7 +482,8 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.overviewCard, { padding: scaleSize(12), borderRadius: scaleSize(24) }]}>
-          <Text style={[styles.overviewTitle, { fontSize: scaleSize(16) }]}>{t('screeningOverviewForName', { name: childName })}</Text>
+          <View style={[styles.overviewHeader, { paddingBottom: scaleSize(12) }]}>
+            <Text style={[styles.overviewTitle, { fontSize: scaleSize(16) }]}>{t('screeningOverviewForName', { name: childName })}</Text>
           <View style={styles.overviewMetaRow}>
             <View style={styles.metaItem}>
               <CalendarIcon width={scaleSize(16)} height={scaleSize(16)} color="#6B7180" />
@@ -486,6 +492,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
             <View style={styles.metaItem}>
               <PersonIcon width={scaleSize(16)} height={scaleSize(16)} />
               <Text style={[styles.overviewMetaText, { fontSize: scaleSize(12) }]}>{screener}</Text>
+            </View>
             </View>
           </View>
 
@@ -504,7 +511,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
           </View>
 
           <View style={[styles.progressTrack, { height: scaleSize(6), borderRadius: scaleSize(3), marginTop: scaleSize(10) }]}>
-            <View style={{ width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: resultColors.fill }} />
+            <View style={{ width: `${progress * 100}%`, height: scaleSize(6), borderRadius: scaleSize(3), backgroundColor: '#1A7340' }} />
           </View>
 
           <View style={[styles.domainGrid, { marginTop: scaleSize(16), gap: scaleSize(12) }]}>
@@ -679,8 +686,8 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
                     <Circle cx={x1} cy={y1} r={4} fill={isImproved ? '#1A7340' : '#E25648'} />
                     <SvgText x={x0} y={scaleSize(140)} fill='#9E9EA0' fontSize={scaleSize(10)} textAnchor='middle'>{prevDateStr.split(' ').slice(0, 2).join(' ')}</SvgText>
                     <SvgText x={x1} y={scaleSize(140)} fill={isImproved ? '#1A7340' : '#E25648'} fontSize={scaleSize(10)} fontFamily='Inter_700Bold' textAnchor='middle'>{date.split(' ').slice(0, 2).join(' ')}</SvgText>
-                    {renderMarker(x0, y0, t('previousScoreLabel'), rawPrev, '#535BD8')}
-                    {renderMarker(x1, y1, t('currentScoreLabel'), rawCurr, isImproved ? '#1A7340' : '#E25648')}
+                    {renderMarker(x0, y0, t('test1'), rawPrev, '#535BD8')}
+                    {renderMarker(x1, y1, t('test2'), rawCurr, isImproved ? '#1A7340' : '#E25648')}
                   </G>
                 );
               })()}
@@ -832,7 +839,7 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
             <Pressable
               key={index}
               onPress={() => setExpandedLearnMore(isExpanded ? null : index)}
-              style={[styles.learnMoreCard, { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(16), borderColor: ['#535BD8', '#C63A82', '#7D6CB7'][index % 3] }]}
+              style={[styles.learnMoreCard, { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(16), borderColor: ['#535BD8', '#C63A82', '#6D7EAE'][index % 3] }]}
             >
               <View style={styles.learnMoreHeader}>
                 <Text style={[styles.learnMoreTitle, { fontSize: scaleSize(13), flex: 1 }]}>{item.title}</Text>
@@ -872,10 +879,11 @@ export default function NoAutismReportScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.white },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontFamily: 'Inter_700Bold', color: '#18182D' },
+  headerTitle: { fontFamily: 'Inter_700Bold', color: '#18182D', flex: 1, textAlign: 'center' },
   datePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F2FF' },
   dateText: { fontFamily: 'Inter_600SemiBold', color: '#535BD8' },
-  overviewCard: { backgroundColor: '#F3F2FF', gap: 8 },
+  overviewCard: { backgroundColor: colors.white, gap: 8 },
+  overviewHeader: { borderBottomWidth: 1, borderBottomColor: '#E2E4E8', gap: 10 },
   overviewTitle: { fontFamily: 'Inter_700Bold', color: '#2D2A3A' },
   overviewMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -886,7 +894,7 @@ const styles = StyleSheet.create({
   scoreValue: { fontFamily: 'Inter_800ExtraBold', color: '#18182D' },
   scoreAsterisk: { fontFamily: 'Inter_800ExtraBold', color: '#6B7180' },
   resultBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
-  resultBadgeText: { fontFamily: 'Inter_700Bold' },
+  resultBadgeText: { fontFamily: 'Inter_700Bold', flexShrink: 1 },
   progressTrack: { backgroundColor: '#E2E4E8' },
   domainGrid: {},
   domainRow: { flexDirection: 'row', justifyContent: 'space-around' },

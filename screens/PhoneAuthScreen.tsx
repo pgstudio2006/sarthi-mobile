@@ -14,6 +14,7 @@ import PrivacyInfoCard from '../components/PrivacyInfoCard';
 import ScreenLayout from '../components/ScreenLayout';
 import { useResponsive } from '../utils/responsive';
 import { requestOtp } from '../api/client';
+import { OTPWidget } from '@msg91comm/sendotp-react-native';
 import LockIcon from '../assets/screen5/lock.svg';
 
 const GAP_HEADER_TO_CONTENT = 30;
@@ -21,6 +22,11 @@ const GAP_HEADING_TO_SUBTITLE = 12;
 const GAP_SUBTITLE_TO_INPUT = 20;
 const GAP_INPUT_TO_INFO = 16;
 const GAP_INFO_TO_CARD = 20;
+
+const USE_WIDGET =
+  process.env.EXPO_PUBLIC_MOCK_API !== 'true' &&
+  Boolean(process.env.EXPO_PUBLIC_MSG91_WIDGET_ID) &&
+  Boolean(process.env.EXPO_PUBLIC_MSG91_TOKEN_AUTH);
 
 export default function PhoneAuthScreen({ navigation }: { navigation: any }) {
   const { t } = useTranslation();
@@ -36,15 +42,36 @@ export default function PhoneAuthScreen({ navigation }: { navigation: any }) {
     setLoading(true);
     setError('');
 
+    if (USE_WIDGET) {
+      try {
+        const identifier = `91${phone}`;
+        const response = await OTPWidget.sendOTP({ identifier });
+        setLoading(false);
+        if (response?.type?.toLowerCase?.() === 'success') {
+          if (response['access-token']) {
+            navigation.navigate('OTPVerification', { phoneNumber: `+91 ${phone}`, accessToken: response['access-token'] });
+          } else {
+            navigation.navigate('OTPVerification', { phoneNumber: `+91 ${phone}`, reqId: response.message });
+          }
+        } else {
+          setError(response?.message || t('failedSendOtp'));
+        }
+      } catch (err) {
+        setLoading(false);
+        setError(err instanceof Error ? err.message : t('failedSendOtp'));
+      }
+      return;
+    }
+
     const result = await requestOtp(`+91${phone}`);
     setLoading(false);
 
-    if (!result.success && !__DEV__) {
+    if (!result.success) {
       setError(result.error);
       return;
     }
 
-    const devOtp = result.success ? result.data.devOtp : '123456';
+    const devOtp = __DEV__ ? result.data.devOtp : undefined;
     navigation.navigate('OTPVerification', { phoneNumber: `+91 ${phone}`, devOtp });
   };
 

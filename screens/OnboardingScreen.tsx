@@ -27,6 +27,7 @@ type Page = {
   titleKey: string;
   bodyKey: string;
   showPrivacy: boolean;
+  privacySection?: boolean;
 };
 
 const PAGES: Page[] = [
@@ -46,7 +47,8 @@ const PAGES: Page[] = [
     hero: require('../assets/screen5/hero.png'),
     titleKey: 'knowNextSteps',
     bodyKey: 'knowNextStepsBody',
-    showPrivacy: true,
+    showPrivacy: false,
+    privacySection: true,
   },
 ];
 
@@ -61,7 +63,7 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
     try {
       await AsyncStorage.setItem('onboardingCompleted', 'true');
     } catch (e) {}
-    navigation.replace('PhoneAuth');
+    navigation.replace('Home');
   }, [navigation]);
 
   const handleNext = useCallback(() => {
@@ -85,12 +87,12 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
 
   const renderItem = ({ item }: { item: Page }) => (
     <ScrollView
-      style={{ width }}
+      style={{ width, height: '100%' }}
       contentContainerStyle={{
         flexGrow: 1,
         paddingHorizontal: 24 * scale,
         paddingTop: 24 * scale,
-        paddingBottom: 16 * scale,
+        paddingBottom: 24 * scale,
       }}
       showsVerticalScrollIndicator={false}
       nestedScrollEnabled
@@ -115,9 +117,27 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
         </View>
       )}
 
-      <View style={[styles.paginationWrapper, { marginTop: 24 * scale }]}>
-        <PaginationIndicator total={PAGES.length} active={activeIndex} />
-      </View>
+      {item.privacySection && (
+        <View style={[styles.privacySection, { marginTop: 12 * scale, padding: 12 * scale, borderRadius: 14 * scale, backgroundColor: colors.privacyGreenLight }]}>
+          <View style={styles.privacySectionHeader}>
+            <LockIcon width={16 * scale} height={16 * scale} />
+            <Text style={[styles.privacySectionTitle, { fontSize: 14 * scale, marginLeft: 8 * scale }]}>{t('privacyMatters')}</Text>
+          </View>
+          <View style={{ marginTop: 8 * scale, gap: 7 * scale }}>
+            {[
+              t('privacyDPDPA'),
+              t('privacyNotResearch'),
+              t('privacySafeAndSecure'),
+            ].map((point, index) => (
+              <View key={index} style={styles.privacyRow}>
+                <View style={[styles.privacyDot, { width: 5 * scale, height: 5 * scale, borderRadius: 3 * scale, marginTop: 5 * scale }]} />
+                <Text style={[styles.privacyPoint, { fontSize: 13 * scale, lineHeight: 18 * scale, marginLeft: 8 * scale }]}>{point}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
     </ScrollView>
   );
 
@@ -142,6 +162,10 @@ export default function OnboardingScreen({ navigation }: { navigation: any }) {
         scrollEnabled
         style={{ flex: 1 }}
       />
+
+      <View style={[styles.paginationWrapper, { marginVertical: 8 * scale }]}>
+        <PaginationIndicator total={PAGES.length} active={activeIndex} />
+      </View>
 
       <View style={[styles.buttonWrapper, { paddingHorizontal: 20 * scale, paddingBottom: 24 * scale }]}>
         <PrimaryButton
@@ -170,6 +194,29 @@ const styles = StyleSheet.create({
   },
   privacyWrapper: {
     width: '100%',
+  },
+  privacySection: {
+    width: '100%',
+  },
+  privacySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  privacySectionTitle: {
+    fontFamily: 'Inter_700Bold',
+    color: colors.privacyGreen,
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  privacyDot: {
+    backgroundColor: colors.privacyGreen,
+  },
+  privacyPoint: {
+    flex: 1,
+    fontFamily: 'Inter_500Medium',
+    color: colors.mainBlack,
   },
   paginationWrapper: {
     alignItems: 'center',

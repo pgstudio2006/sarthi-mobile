@@ -1,9 +1,8 @@
-import { Alert } from 'react-native';
-import { Asset } from 'expo-asset';
+import { Alert, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LOGO_ASSET = require('../assets/logo.svg');
+import LOGO_DATA_URI from '../assets/logoDataUri';
 
-const LOGO_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAQAAAGKDAGaAAAFgUlEQVRYw7WXa2wUVRTH/20p7fZBW0p5iAplaUELCqEFlUCMYKwJKMYgaEwIUpQYNCIWRYgvQtTS6AeiKEqIQDBIAEFAEEm1DUVUoIqPVqhCC/IoammhC9vt/vywM7szu7NLLfHMl7n3nP/533vuPefMSHap8wNIoG57pxIYSErZDyCgB8qogTYUeKT+v2C+SlLanqA3v4EBwSdAasAI4CUUcA7wRsiBMbDIjQDQd4M0ogimtkrbMWSgAVzibUIouTIwfc4kJaVIkpT+PTxLiGplkHCo6Wq+uSOydlrYl3jD1xOSAQ5zdzcA1CJJK/ygOEk91kIhAMsQmeMDq9MRg7ojGExIINkrOAm8D4DHSg9QwiQApiDmeQzFWaDE2LUQ4DXjedimsAQaShgbqXj4NM4ISZpmVeTbdt6vGISrWtElfs76Fuig9+9hij7qFjbTs6GecEnxSdKa4DjbK0nFrzWFTI4yE/jVsvDsMaauP0JxX0ARviBgOg0A3GnZaVpO4N3llZRYYZrez8dhC/KRxrBVYSt37TPVgSh6GQN8FFxSQPLOqbsBSP3Wy2gLwJIRQcC91mPIOGyaTaTKARBxbllH7EtqZkJsgCRlvrTbF21JQiS3KN7pkFNH/BMOiJ+nq8vQTTNI8ChZnZabXJs7bxzf9zjAO/8kTLfNxynXwTpze6PlnG8/o16B+fzTfqCRgq1W62nXtYff1X1orjRiqzn2M8TgySlqAFjNuqDxFdIRKpWeag/Vo7zfJWXXei1ep3AaKDYDWypNvhLQnETk1+kWf/hC3iUrdGil0i3lAE8iRM/r1cpm3g0aNzAdgB8sACnvm8Bo0AuSLgLwKMeBQjosTEuCAJu0BSPgjsjo5WS0KyUM4Amqf6aO2cFRPUKU0cLAOhvgsgUAUM4u/PQz9lAGwC5/75eDgFlhAHuxKzNmynGtMwDtvMWOmIBahEjbYAACBWYCzY6A18kx3jI2WXolQJvRKMLqb6g5bbO0AnMPlbwSFdBrpwMA4FkOOwJ6mw08q/J8jChZnhtCR9HdfTo2IP6JyGQrfKbVGZBeETWdB723PwzQ/ZISr1IDchs9IcCtnasbWWMvCC3SNUhm2ophJ2raq9pyjycvjbju1yTje/604IzHllMXmH0256BGRBoPTipaO/jv4ktTPaNaC+rd02I5dqUsdTdUXiaGfOYbdKbPi2bnLkjLO3cszGJx+00fRLoemXlg1qkLVDOOxVyM6v4MM4kLlpQh6cObI22OIcatNh0nJj3X/8S2S3aTFhZwJ9/Z5raTZ71npZKUOWVxhPtDuBD5jZI7c+8DJ8/Giga7GcObzCMxMkFKJWlUYm6ztU0cYbihH7lccbv3cw9z+Tuq+yrG8gptNDGHBEcCSXGDjz7NDG6zWQyYLylhTyDSl1nK7VRYHLfxKmOpjCDcaH5dR5T1obPddekel9f95/BPs/ubwa+wB76acTzPRJ6hOWbYGnkEEb/wqlc96eu2CHAJ1cznLg5Fdf8lBQjxBqv87qbcx2MQJFd5HAjMyrSD0bxN6ABbWUiSQ9f4jQnNA7epjwNBSvWVGATmrX+M+xjjUGbLbHbtLLvU7w/dYf/0OrCV0ZTjjUEQ/WOxzJYh+QiRut5GkP6dz/jBms0kartA0ByWIekbbQQ9DnXYHG2gkIJOE7gc5jK32AgyavwOZ/A504N/AjG/px2entvtxf5Hoh5yByspZMN/JMjZbQ/RwRrf1W5RLZMY3Pkd7Ii8q5N71y9rae/CLbI/PY5qfKyk7ttvy13nj3aBIN6XslwZnW2TcX1KMlre8vk7RZB6QsVd7ccD3dUPXTwVhSCuI+lD80fi2iQhb1H+X5ssBEmn9KD+B7k54yut0XX/HfgvpUkmTvPggOsAAAAASUVORK5CYII=';
 
 import { toIsaaLabel } from './domainQuestions';
 
@@ -118,26 +117,26 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     activities: ['Practice during playtime', 'Encourage communication', 'Celebrate small wins'],
   },
   average: {
-    label: 'Average',
-    text: '#B07D00',
-    bg: '#FFF8E1',
-    border: '#FBBC04',
+    label: 'Making progress',
+    text: '#BB853E',
+    bg: '#FDF3E5',
+    border: '#BB853E',
     recommendation: 'Some variation is normal. Watch, encourage, and re-check over time.',
     activities: ['Add gentle practice', 'Use positive reinforcement', 'Track progress weekly'],
   },
   'needs attention': {
-    label: 'Needs Attention',
-    text: '#C65D00',
-    bg: '#FFF3E0',
-    border: '#FF9900',
+    label: 'Needs support',
+    text: '#E25648',
+    bg: '#FDF0EB',
+    border: '#E25648',
     recommendation: 'Targeted practice and professional screening guidance are recommended.',
     activities: ['Practice short, focused sessions', 'Use visual supports', 'Speak with a therapist if concerns continue'],
   },
   'high priority': {
-    label: 'High Priority',
-    text: '#B71C1C',
-    bg: '#FFEBEE',
-    border: '#EA4335',
+    label: 'Needs extra support',
+    text: '#B9382E',
+    bg: '#FDE8E8',
+    border: '#B9382E',
     recommendation: 'Please consult a developmental specialist for an in-depth evaluation.',
     activities: ['Seek professional evaluation', 'Start early intervention if advised', 'Create a calm, structured environment'],
   },
@@ -186,38 +185,30 @@ function deriveStatus(score: number, maxScore: number): string {
 }
 
 function getOverallCategory(score: number): CategoryConfig {
-  if (score <= 40) {
+  if (score < 70) {
     return {
-      label: 'No Signs of Autism',
-      color: '#1A7340',
-      lightBg: '#E6F4EA',
-      explanation: 'The total score is low. No significant developmental signals were observed in this screening.',
+      label: 'No Signs of Autism', color: '#1A7340', lightBg: '#E6F4EA',
+      explanation: 'No significant developmental signals were observed in this screening.',
       recommendation: 'Continue regular developmental activities and routine monitoring.',
     };
   }
-  if (score <= 80) {
+  if (score <= 106) {
     return {
-      label: 'Mild Signs',
-      color: '#BB853E',
-      lightBg: '#FFF8E1',
-      explanation: 'A few early signals were noticed. These are not a diagnosis, but are worth watching.',
-      recommendation: 'Monitor progress and consider a follow-up screening in a few weeks.',
+      label: 'Mild Autism', color: '#BB853E', lightBg: '#FEF3C7',
+      explanation: 'Some developmental signals were noticed. These results are not a diagnosis, but they can guide your next steps.',
+      recommendation: 'Consider a detailed evaluation and early support with a specialist.',
     };
   }
-  if (score <= 140) {
+  if (score <= 153) {
     return {
-      label: 'Moderate Signs',
-      color: '#B07D00',
-      lightBg: '#FFF8E1',
-      explanation: 'Several developmental signals were noted. A professional assessment is advisable.',
+      label: 'Moderate Autism', color: '#E8564A', lightBg: '#FDEEEA',
+      explanation: 'Several developmental signals were noted. A professional assessment is recommended.',
       recommendation: 'Speak with a developmental pediatrician or child psychiatrist for guidance.',
     };
   }
   return {
-    label: 'High Signs',
-    color: '#B71C1C',
-    lightBg: '#FFEBEE',
-    explanation: 'A high number of signals were reported. Professional evaluation is strongly recommended.',
+    label: 'Severe Autism', color: '#B9382E', lightBg: '#FDE8E8',
+    explanation: 'A high number of developmental signals were reported. Professional evaluation is strongly recommended.',
     recommendation: 'Please consult a developmental specialist as soon as possible.',
   };
 }
@@ -243,9 +234,10 @@ function getScreenerRole(screener?: string): string {
   return match ? match[1] : screener;
 }
 
-function buildReportHtml(data: ScreeningReportData, logoSource: string): string {
+function buildReportHtml(data: ScreeningReportData): string {
   const { childName, score, total, date, screener, domainBreakdown, domainAnswers } = data;
   const screenerRole = getScreenerRole(screener);
+  const questionCount = DOMAIN_ORDER.reduce((sum, key) => sum + (DOMAIN_QUESTIONS[key]?.length || 0), 0);
   const category = getOverallCategory(score);
 
   const resultLabel = data.result === 'Normal' ? 'No Signs of Autism' : data.result || 'Screening Result';
@@ -271,7 +263,7 @@ function buildReportHtml(data: ScreeningReportData, logoSource: string): string 
     const bd = domainBreakdown?.find((b: any) => b.key === key);
     const label = DOMAIN_LABELS[key];
     const scoreStr = bd ? `${bd.score} / ${bd.maxScore}` : '-';
-    const statusLabel = bd?.status || 'Doing well';
+    const statusLabel = bd?.score !== undefined ? getDomainStatus(key, Number(bd.score)).label : (bd?.status || 'Doing well');
     const statusKey = normalizeStatus(statusLabel);
     if (statusKey === 'needs attention' || statusKey === 'high priority') focusDomains.push(label);
     if (statusKey === 'excellent' || statusKey === 'good') strengthDomains.push(label);
@@ -286,7 +278,7 @@ function buildReportHtml(data: ScreeningReportData, logoSource: string): string 
     const bd = domainBreakdown?.find((b: any) => b.key === key);
     const label = DOMAIN_LABELS[key];
     const scoreStr = bd ? `${bd.score} / ${bd.maxScore}` : '-';
-    const statusLabel = bd?.status || 'Doing well';
+    const statusLabel = bd?.score !== undefined ? getDomainStatus(key, Number(bd.score)).label : (bd?.status || 'Doing well');
     const questions = DOMAIN_QUESTIONS[key] || [];
     const answers = domainAnswers[key] || [];
 
@@ -311,10 +303,10 @@ function buildReportHtml(data: ScreeningReportData, logoSource: string): string 
       ? `<p style='margin:8px 0;font-size:12px;color:#6B7180;'>* Note: ${escapeHtml(screenerRole)} did not provide an answer for the following question${missing.length > 1 ? 's' : ''} — ${missing.map(escapeHtml).join('; ')}</p>`
       : '';
 
-    const pageBreak = index < DOMAIN_ORDER.length - 1 ? `<div style='page-break-after:always;'></div>` : '';
+    const pageBreak = index === 2 || index === DOMAIN_ORDER.length - 1 ? `<div style='page-break-after:always;'></div>` : '';
 
     return `
-      <div style='margin-top:24px;padding:16px;border:1px solid #E2E4E8;border-radius:12px;background:#FAFAFA;'>
+      <div class='domain-detail' style='margin-top:18px;padding:14px 8px 10px;border-top:1px solid #E2E4E8;background:#FFFFFF;'>
         <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'>
           <h3 style='font-size:16px;color:#2D2A3A;margin:0;'>${escapeHtml(label)}</h3>
           ${pdfStatusBadge(statusLabel)}
@@ -345,30 +337,36 @@ function buildReportHtml(data: ScreeningReportData, logoSource: string): string 
       <head>
         <meta charset='utf-8' />
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif; color: #2D2A3A; margin: 32px; }
-          h1 { font-size: 22px; color: #2D2A3A; margin-bottom: 4px; }
-          h2 { font-size: 16px; color: #535BD8; margin-top: 24px; margin-bottom: 12px; }
-          p, li, td, th { font-size: 12px; line-height: 1.5; }
-          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+          @page { size: A4; margin: 16mm 18mm 18mm; }
+          * { box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif; color: #2D2A3A; margin: 0; font-size: 12px; }
+          h1 { font-size: 22px; color: #2D2A3A; margin: 12px 0 4px; line-height: 1.2; }
+          h2 { font-size: 16px; color: #535BD8; margin: 20px 0 10px; line-height: 1.25; }
+          h3, h4 { page-break-after: avoid; }
+          p, li, td, th { font-size: 12px; line-height: 1.45; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; page-break-inside: avoid; }
           th { background: #F3F2FF; color: #535BD8; text-align: left; padding: 8px 10px; border: 1px solid #E2E4E8; }
+          td { vertical-align: top; }
+          .domain-detail { page-break-inside: avoid; }
+          .page-section { page-break-after: always; }
         </style>
       </head>
       <body>
-        <div style='display:flex;align-items:center;gap:12px;margin-bottom:16px;'>
-          <img src='${escapeHtml(logoSource)}' width='48' height='48' style='border-radius:8px;' />
-          <div>
-            <span style='font-size:20px;font-weight:700;color:#535BD8;'>Saarathi</span><br/>
-            <span style='font-size:11px;color:#6B7180;'>Autism Screening & Care</span>
-          </div>
-        </div>
-        <h1>${escapeHtml(childName)}'s Autism Screening Report</h1>
-        <p style='color:#6B7180;'>Based on ISAA (Indian Scale for Assessment of Autism)</p>
-        <p style='margin-top:16px;'><strong>Date:</strong> ${escapeHtml(date || '')} &nbsp;|&nbsp; <strong>Screener:</strong> ${escapeHtml(screener || '')}</p>
+        <header style='text-align:center;margin-bottom:20px;'>
+          <img src='${LOGO_DATA_URI}' width='48' height='48' style='display:block;margin:0 auto 8px;' />
+          <h1>${escapeHtml(childName)}'s Autism Screening Report</h1>
+          <p style='margin:0;color:#6B7180;font-style:italic;font-size:11px;'>Based on ISAA (Indian Scale for Assessment of Autism)</p>
+        </header>
 
-        <h2>Screening Overview</h2>
-        <p style='font-size:14px;margin:8px 0;'><strong>Overall Score:  ${score} / ${total}</strong></p>
-        <p style='font-size:16px;color:${category.color};font-weight:700;'>${escapeHtml(resultLabel)}</p>
-        <p style='font-size:12px;color:#6B7180;'>* This score is only indicative, not a diagnosis. Please consult a specialist to confirm.</p>
+        <section style='background:#F7F7F7;padding:12px 10px 16px;margin-bottom:18px;'>
+          <h2 style='color:#333;margin:0 0 12px;font-size:14px;'>Screening Overview</h2>
+          <p style='font-size:14px;margin:0 0 16px;'><strong>Overall Score:  ${score} / ${total}</strong></p>
+          <div style='height:17px;background:#E4E4E4;overflow:hidden;margin:0 0 14px;'>
+            <div style='height:17px;width:${Math.min(100, Math.max(0, (score / Math.max(1, total)) * 100))}%;background:${category.color};'></div>
+          </div>
+          <p style='display:inline-block;min-width:180px;text-align:center;padding:5px 12px;margin:0;background:${category.lightBg};color:${category.color};font-size:12px;font-weight:700;'>${escapeHtml(resultLabel)}</p>
+          <p style='font-size:11px;color:#777;font-style:italic;margin:14px 0 0;'>* This score is only indicative, not a diagnosis. Please consult a specialist to confirm.</p>
+        </section>
 
         <h2>Overview of the 6 Domains</h2>
         <table>
@@ -378,26 +376,27 @@ function buildReportHtml(data: ScreeningReportData, logoSource: string): string 
           <tbody>${overviewRows}</tbody>
         </table>
 
-        <h2>Screening Result</h2>
-        <p style='font-size:14px;margin:8px 0;'><strong>${escapeHtml(resultLabel)}   (${score} / ${total})</strong></p>
-        <p style='font-size:12px;margin:8px 0;'>${resultExplanation}</p>
-        ${focusAreasLine}
-        <p style='font-size:12px;margin:8px 0;'>For a detailed diagnosis, please consult a Developmental Pediatrician.</p>
+        <section style='background:${category.lightBg};padding:14px 16px;margin:18px 0;'>
+          <h2 style='color:${category.color};margin:0 0 8px;font-size:14px;'>Screening Result</h2>
+          <p style='font-size:16px;margin:0 0 8px;'><strong>${escapeHtml(resultLabel)}</strong> <span style='font-size:12px;'>(${score} / ${total})</span></p>
+          <p style='font-size:12px;margin:8px 0;'>${resultExplanation}</p>
+          ${focusAreasLine}
+          <p style='font-size:12px;margin:8px 0 0;'><strong>For a detailed diagnosis, please consult a Developmental Pediatrician.</strong></p>
+        </section>
 
-        <div style='padding:12px 16px;background:#FFF8E1;border-left:4px solid #FBBC04;border-radius:8px;margin:12px 0;'>
-          <h3 style='margin:0;font-size:14px;color:#B07D00;'><span style='margin-right:6px;'>&#9888;</span>A Screening is Not a Diagnosis</h3>
-          <p style='margin:6px 0 0;font-size:12px;color:#2D2A3A;'>Screening results are not a diagnosis. They help identify developmental signals and guide the next steps. Please consult a child psychiatrist or a developmental specialist to confirm.</p>
+        <div style='padding:12px 16px;background:#F4F4F6;margin:16px 0;'>
+          <h3 style='margin:0;font-size:14px;color:#333;'><span style='margin-right:6px;color:#B07D00;'>&#9888;</span>A Screening is Not a Diagnosis</h3>
+          <p style='margin:6px 0 0;font-size:12px;color:#6B7180;'>Screening results are not a diagnosis. They help identify developmental signals and guide the next steps. Please consult a child psychiatrist or a developmental specialist to confirm.</p>
         </div>
 
+        <div style='page-break-before:always;'></div>
         <h2>Development by Domain</h2>
         <p style='font-size:12px;color:#6B7180;'>See below what is working well and where more attention is needed in each domain.</p>
-
-        <div style='page-break-after:always;'></div>
 
         ${domainDetails}
 
         <p style='margin-top:32px;font-size:11px;color:#6B7180;'>
-          This report has been prepared based on the scores given by ${escapeHtml(screenerRole)} (from the ${total} ISAA questions). The “What's Working Well” section lists items answered Rarely or Sometimes (score 0 or 1), and the “Needs Attention” section lists items answered Often, Most of the times or Almost Always (score 2 or higher).
+          This report has been prepared based on the scores given by ${escapeHtml(screenerRole)} (from the ${questionCount} ISAA questions). The “What's Working Well” section lists items answered Rarely or Sometimes (score 0 or 1), and the “Needs Attention” section lists items answered Often, Most of the times or Almost Always (score 2 or higher).
         </p>
       </body>
     </html>
@@ -411,10 +410,10 @@ function sanitizeFileName(name: string): string {
 export function getResultColors(result?: string) {
   const r = (result || '').toLowerCase();
   if (r.includes('severe')) {
-    return { text: '#B71C1C', bg: '#FFEBEE', border: '#EA4335', fill: '#B71C1C' };
+    return { text: '#2D2A3A', bg: '#FDE8E8', border: '#E25648', fill: '#B9382E' };
   }
   if (r.includes('moderate')) {
-    return { text: '#C65D00', bg: '#FFF3E0', border: '#FF9900', fill: '#C65D00' };
+    return { text: '#2D2A3A', bg: '#FDEEEA', border: '#EF6B61', fill: '#E8564A' };
   }
   if (r.includes('mild')) {
     return { text: '#BB853E', bg: '#FEF3C7', border: '#BB853E', fill: '#BB853E' };
@@ -422,19 +421,67 @@ export function getResultColors(result?: string) {
   return { text: '#1A7340', bg: '#E6F4EA', border: '#34A853', fill: '#1A7340' };
 }
 
-export function getDomainRingColor(status: string | undefined, defaultColor: string): string {
+export function getDomainRingColor(
+  status: string | undefined,
+  defaultColor: string,
+  progress?: number,
+): string {
   const s = (status ?? '').toLowerCase();
   if (s.includes('support')) return '#E25648';
-  if (s.includes('progress')) return '#BB853E';
   return defaultColor;
 }
 
-export function getStatusColors(status?: string, fallback?: { text: string; bg: string }) {
-  const s = (status ?? '').toLowerCase();
-  if (s.includes('support')) return { text: '#E25648', bg: '#FDF0EB' };
-  if (s.includes('progress')) return { text: '#BB853E', bg: '#FDF8E8' };
-  if (s.includes('great') || s.includes('well')) return { text: '#1A7340', bg: '#E8F7F0' };
-  return fallback ?? { text: '#6B7180', bg: '#F4F5F5' };
+const DOMAIN_STATUS_RANGES: Record<string, { label: string; min: number; max: number }[]> = {
+  Social: [
+    { label: 'Doing great', min: 0, max: 9 }, { label: 'Doing well', min: 10, max: 18 },
+    { label: 'Making progress', min: 19, max: 27 }, { label: 'Needs support', min: 28, max: 36 },
+    { label: 'Needs extra support', min: 37, max: 45 },
+  ],
+  Emotion: [
+    { label: 'Doing great', min: 0, max: 5 }, { label: 'Doing well', min: 6, max: 10 },
+    { label: 'Making progress', min: 11, max: 15 }, { label: 'Needs support', min: 16, max: 20 },
+    { label: 'Needs extra support', min: 21, max: 25 },
+  ],
+  Speech: [
+    { label: 'Doing great', min: 0, max: 9 }, { label: 'Doing well', min: 10, max: 18 },
+    { label: 'Making progress', min: 19, max: 27 }, { label: 'Needs support', min: 28, max: 36 },
+    { label: 'Needs extra support', min: 37, max: 45 },
+  ],
+  Behavior: [
+    { label: 'Doing great', min: 0, max: 7 }, { label: 'Doing well', min: 8, max: 14 },
+    { label: 'Making progress', min: 15, max: 21 }, { label: 'Needs support', min: 22, max: 28 },
+    { label: 'Needs extra support', min: 29, max: 35 },
+  ],
+  Sensory: [
+    { label: 'Doing great', min: 0, max: 6 }, { label: 'Doing well', min: 7, max: 12 },
+    { label: 'Making progress', min: 13, max: 18 }, { label: 'Needs support', min: 19, max: 24 },
+    { label: 'Needs extra support', min: 25, max: 30 },
+  ],
+  Cognitive: [
+    { label: 'Doing great', min: 0, max: 4 }, { label: 'Doing well', min: 5, max: 8 },
+    { label: 'Making progress', min: 9, max: 12 }, { label: 'Needs support', min: 13, max: 16 },
+    { label: 'Needs extra support', min: 17, max: 20 },
+  ],
+};
+
+export function getDomainStatus(domain: string, score: number) {
+  const ranges = DOMAIN_STATUS_RANGES[domain] ?? DOMAIN_STATUS_RANGES.Social;
+  const safeScore = Number.isFinite(score) ? Math.max(0, score) : 0;
+  return ranges.find((range) => safeScore >= range.min && safeScore <= range.max) ?? ranges[ranges.length - 1];
+}
+
+export function getStatusColors(status?: string) {
+  const normalized = (status ?? '').toLowerCase();
+  if (normalized.includes('extra support') || normalized.includes('more support')) {
+    return { color: '#B9382E', bg: '#FDE8E8' };
+  }
+  if (normalized.includes('needs support') || normalized.includes('support')) {
+    return { color: '#E25648', bg: '#FDF0EB' };
+  }
+  if (normalized.includes('progress')) {
+    return { color: '#BB853E', bg: '#FDF3E5' };
+  }
+  return { color: '#1A7340', bg: '#E8F7F0' };
 }
 
 export type DomainInsightCard = {
@@ -454,7 +501,7 @@ const DOMAIN_INSIGHT_META: Record<string, { title: string; color: string; Icon: 
   Speech: { title: 'Speech & Language', color: '#3B8DBD', Icon: SpeechIcon, supportHeading: 'Communication needs support', goodHeading: 'Speech & language is on track' },
   Behavior: { title: 'Behaviour Patterns', color: '#D66A8E', Icon: BehaviorIcon, supportHeading: 'Repetitive patterns need guidance', goodHeading: 'Daily behaviours are well-balanced' },
   Sensory: { title: 'Sensory Responses', color: '#F4A261', Icon: SensoryIcon, supportHeading: 'Sensory responses need support', goodHeading: 'Sensory responses are on track' },
-  Cognitive: { title: 'Cognitive Patterns', color: '#7D6CB7', Icon: CognitiveIcon, supportHeading: 'Attention & focus need support', goodHeading: 'Cognitive skills are on track' },
+  Cognitive: { title: 'Cognitive Patterns', color: '#6D7EAE', Icon: CognitiveIcon, supportHeading: 'Attention & focus need support', goodHeading: 'Cognitive skills are on track' },
 };
 
 export function buildDomainTopInsights(domainBreakdown?: any[], previousScore?: any): DomainInsightCard[] {
@@ -470,10 +517,11 @@ export function buildDomainTopInsights(domainBreakdown?: any[], previousScore?: 
     const needsSupport = (bd?.status ?? '').toLowerCase().includes('need') || score > maxScore * 0.4;
     const prevBd = previousScore?.domainBreakdown?.find((b: any) => b.key === key);
     const isImproved = prevBd ? score < Number(prevBd.score || 0) : false;
-    const status = bd?.status || (needsSupport ? 'Needs support' : 'Doing well');
-    const statusDefaults = needsSupport ? { text: '#E25648', bg: '#FDF0EB' } : { text: '#1A7340', bg: '#E8F7F0' };
-    const statusColors = getStatusColors(status, statusDefaults);
-    const statusColor = statusColors.text;
+    const status = bd?.score !== undefined
+      ? getDomainStatus(key, score).label
+      : (bd?.status || (needsSupport ? 'Needs support' : 'Doing well'));
+    const statusColors = getStatusColors(status);
+    const statusColor = statusColors.color;
     const statusBg = statusColors.bg;
     const heading = isImproved ? meta.goodHeading : needsSupport ? meta.supportHeading : meta.goodHeading;
     const activities = (DOMAIN_ACTIVITIES[key] || []).slice(0, 3);
@@ -511,11 +559,8 @@ export async function generateScreeningReportPDF(data: ScreeningReportData, acti
   }
 
   try {
-    const logoAsset = Asset.fromModule(LOGO_ASSET);
-    await logoAsset.downloadAsync();
-    const logoSource = logoAsset.localUri || logoAsset.uri;
     const { uri } = await Print.printToFileAsync({
-      html: buildReportHtml(data, logoSource),
+      html: buildReportHtml(data),
     });
 
     let shareUri = uri;
@@ -532,9 +577,46 @@ export async function generateScreeningReportPDF(data: ScreeningReportData, acti
       // fall through to share with original URI
     }
 
+    const fileName = `${sanitizeFileName(data.childName)} - Screening report by Saarathi.pdf`;
+
+    if (action === 'download' && Platform.OS === 'android' && FileSystem?.StorageAccessFramework) {
+      const directoryKey = '@sarthi/download-directory-uri';
+      let directoryUri = await AsyncStorage.getItem(directoryKey);
+
+      if (!directoryUri) {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (!permissions.granted) {
+          Alert.alert('Download cancelled', 'Choose the Downloads folder to save the PDF report.');
+          return;
+        }
+        if (!permissions.directoryUri) {
+          Alert.alert('Download cancelled', 'The selected folder is unavailable.');
+          return;
+        }
+        directoryUri = permissions.directoryUri;
+        await AsyncStorage.setItem(directoryKey, permissions.directoryUri);
+      }
+
+      try {
+        if (!directoryUri) throw new Error('Download directory permission is missing');
+        const destinationUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          directoryUri,
+          fileName,
+          'application/pdf',
+        );
+        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+        await FileSystem.writeAsStringAsync(destinationUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+        Alert.alert('Report downloaded', `${fileName} was saved to your selected folder.`);
+        return;
+      } catch {
+        await AsyncStorage.removeItem(directoryKey);
+        Alert.alert('Permission required', 'Please choose the Downloads folder again to save this report.');
+        return;
+      }
+    }
+
     if (FileSystem && FileSystem.cacheDirectory && FileSystem.makeDirectoryAsync && FileSystem.copyAsync) {
       const reportDir = `${FileSystem.cacheDirectory}reports`;
-      const fileName = `${sanitizeFileName(data.childName)} - Screening report by Saarathi.pdf`;
       const reportUri = `${reportDir}/${fileName}`;
       await FileSystem.makeDirectoryAsync(reportDir, { intermediates: true });
       await FileSystem.copyAsync({ from: uri, to: reportUri });
