@@ -28,6 +28,10 @@ const USE_WIDGET =
   Boolean(process.env.EXPO_PUBLIC_MSG91_WIDGET_ID) &&
   Boolean(process.env.EXPO_PUBLIC_MSG91_TOKEN_AUTH);
 
+// Store-review number: skips the MSG91 widget and uses the backend OTP path,
+// where a fixed review OTP is whitelisted (see backend REVIEW_PHONE config).
+const REVIEW_PHONE = process.env.EXPO_PUBLIC_REVIEW_PHONE || '9000000000';
+
 export default function PhoneAuthScreen({ navigation }: { navigation: any }) {
   const { t } = useTranslation();
   const { width, scale, scaleSize, scaleFont } = useResponsive();
@@ -42,7 +46,7 @@ export default function PhoneAuthScreen({ navigation }: { navigation: any }) {
     setLoading(true);
     setError('');
 
-    if (USE_WIDGET) {
+    if (USE_WIDGET && phone !== REVIEW_PHONE) {
       try {
         const identifier = `91${phone}`;
         const response = await OTPWidget.sendOTP({ identifier });
