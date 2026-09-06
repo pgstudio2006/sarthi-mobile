@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -49,6 +49,18 @@ export default function OTPVerificationScreen({
   const [reqId, setReqId] = useState(initialReqId);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const autoVerifiedRef = useRef(false);
+
+  // MSG91 "invisible" verification: when sendOTP already returned an
+  // access-token, the number is verified and NO OTP SMS is sent — complete
+  // the sign-in automatically instead of waiting for a code.
+  useEffect(() => {
+    if (widgetAccessToken && !autoVerifiedRef.current) {
+      autoVerifiedRef.current = true;
+      handleContinue();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [widgetAccessToken]);
 
   const handleContinue = async () => {
     if (!widgetAccessToken && otp.length !== 6) return;
